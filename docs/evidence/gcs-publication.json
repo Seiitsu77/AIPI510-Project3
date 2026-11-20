@@ -1,0 +1,13 @@
+{
+  "project_id": "f1-pitwall-2026-qh719",
+  "bucket": "f1-pitwall-2026-qh719-data",
+  "dataset_version": "3607cb9ef2c1a44c",
+  "processed_uri": "gs://f1-pitwall-2026-qh719-data/f1-pitwall/processed/3607cb9ef2c1a44c",
+  "csv_sha256_verified": "3c6e6e52dcce8f966836f39f64ba11a6ae1e3db6dbf7551e0ed46e40af16037a",
+  "published_at": "2026-11-20T20:39:16.650335+00:00",
+  "raw_uri": "gs://f1-pitwall-2026-qh719-data/f1-pitwall/raw/2026-11-20T203719.8475760000",
+  "model_uri": "gs://f1-pitwall-2026-qh719-data/f1-pitwall/models/e08c75d96518",
+  "model_version": "e08c75d96518",
+  "model_sha256": "b10fcb8c89c8d6ef8a9f4c772e0a6efff0767fb7f00c376effed8f11f89bc547",
+  "mlflow_uri": "gs://f1-pitwall-2026-qh719-data/f1-pitwall/experiments/e08c75d96518"
+}

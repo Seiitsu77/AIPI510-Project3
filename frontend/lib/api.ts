@@ -1,4 +1,10 @@
-import type { ModelInfo, Prediction, Race, Replay } from "./types";
+import type {
+  HistoricalReference,
+  ModelInfo,
+  Prediction,
+  Race,
+  Replay,
+} from "./types";
 const API = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 ).replace(/\/$/, "");
@@ -32,6 +38,15 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const getRaces = () => request<Race[]>("/races");
 export const getReplay = (key: number) =>
   request<Replay>(`/races/${key}/replay`);
+export const getReference = (params: {
+  circuit: string;
+  driver: string;
+  team: string;
+  compound: string;
+}) =>
+  request<HistoricalReference>(
+    `/reference?${new URLSearchParams(params).toString()}`,
+  );
 export async function getModel(): Promise<ModelInfo> {
   try {
     return await request<ModelInfo>("/model/info");

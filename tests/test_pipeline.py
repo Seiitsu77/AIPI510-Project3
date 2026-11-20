@@ -83,3 +83,53 @@ def test_cached_responses_do_not_hit_network(monkeypatch,tmp_path):
     def fail(*a,**k):raise AssertionError("Network must not be used for a valid cache")
     monkeypatch.setattr("pipeline.ingest.httpx.get",fail)
     assert len(fetch("laps",{},path,config()["data"]))==1
+
+
+def test_explicit_no_results_is_preserved_as_empty_source(monkeypatch,tmp_path):
+    import httpx
+    response=httpx.Response(404,json={"detail":"No results found."},request=httpx.Request("GET","https://api.openf1.org/v1/pit"))
+    monkeypatch.setattr("pipeline.ingest.httpx.get",lambda *a,**k:response)
+    monkeypatch.setattr("pipeline.ingest.time.sleep",lambda *a:None)
+    path=tmp_path/"pit.json"
+    assert fetch("pit",{},path,config()["data"])==[]
+    assert json.loads(path.read_text())==[]
+
+
+def test_other_404_is_not_disguised_as_empty_data(monkeypatch,tmp_path):
+    import httpx
+    response=httpx.Response(404,json={"detail":"Not Found"},request=httpx.Request("GET","https://example.test/typo"))
+    monkeypatch.setattr("pipeline.ingest.httpx.get",lambda *a,**k:response)
+    with pytest.raises(httpx.HTTPStatusError):fetch("pit",{},tmp_path/"pit.json",config()["data"])
+
+
+def test_duplicate_lap_grain_fails_and_ambiguous_stints_remain_unknown(source):
+    session,raw=source
+    original=copy.deepcopy(raw)
+    raw["laps"].append(copy.deepcopy(raw["laps"][0]))
+    with pytest.raises(ValueError,match="Duplicate lap key"):process_session(session,raw,config()["evaluation"])
+    raw=original
+    raw["stints"].append({**raw["stints"][0],"stint_number":3})
+    rows=process_session(session,raw,config()["evaluation"])
+    assert rows[1]["compound"] is None and rows[1]["tyre_age"] is None
+    assert "ambiguous_stint" in rows[1]["exclusions"] and not rows[1]["eligible"]
+
+
+def test_clearing_one_sector_does_not_clear_another_yellow():
+    events=[{"date":"2024-01-01T00:00:00+00:00","category":"Flag","flag":"YELLOW","scope":"Sector","sector":2,"message":"YELLOW"},
+            {"date":"2024-01-01T00:00:10+00:00","category":"Flag","flag":"YELLOW","scope":"Sector","sector":15,"message":"YELLOW"},
+            {"date":"2024-01-01T00:00:20+00:00","category":"Flag","flag":"CLEAR","scope":"Sector","sector":2,"message":"CLEAR"},
+            {"date":"2024-01-01T00:02:00+00:00","category":"Flag","flag":"CLEAR","scope":"Sector","sector":15,"message":"CLEAR"}]
+    windows=caution_windows(events,datetime(2024,1,1,2,tzinfo=timezone.utc))
+    point=datetime(2024,1,1,0,1,tzinfo=timezone.utc)
+    assert any(start<=point<=end for start,end in windows)
+
+
+def test_red_flag_ends_preceding_safety_car_without_leaking_caution_to_finish():
+    events=[{"date":"2023-11-05T17:03:50+00:00","category":"SafetyCar","message":"SAFETY CAR DEPLOYED"},
+            {"date":"2023-11-05T17:06:35+00:00","category":"Flag","flag":"RED","scope":"Track","message":"RED FLAG"},
+            {"date":"2023-11-05T17:27:51+00:00","category":"Flag","flag":"CLEAR","scope":"Track","message":"TRACK CLEAR"}]
+    windows=caution_windows(events,datetime(2023,11,5,19,tzinfo=timezone.utc))
+    restart=datetime(2023,11,5,17,28,tzinfo=timezone.utc)
+    green=datetime(2023,11,5,17,35,tzinfo=timezone.utc)
+    assert any(start<=restart<=end for start,end in windows)
+    assert not any(start<=green<=end for start,end in windows)

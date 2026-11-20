@@ -1,0 +1,217 @@
+{
+  "version": "e08c75d96518",
+  "dataset_version": "3607cb9ef2c1a44c",
+  "model": "linear_regression",
+  "trained_at": "2026-11-20T20:38:33.727132+00:00",
+  "test_metrics": {
+    "mae": 1.718158829700287,
+    "rmse": 2.1824846063173524
+  },
+  "validation_metrics": {
+    "mae": 1.7288317362407915,
+    "rmse": 2.391413313234492
+  },
+  "candidates": {
+    "linear_regression": {
+      "mae": 1.7288317362407915,
+      "rmse": 2.391413313234492
+    },
+    "hist_gradient_boosting": {
+      "mae": 2.2653743353461513,
+      "rmse": 3.3352100917269456
+    }
+  },
+  "split": {
+    "train": [
+      7953,
+      7779,
+      7787,
+      9070,
+      9078,
+      9094,
+      9102,
+      9110,
+      9118,
+      9126,
+      9133,
+      9141,
+      9149,
+      9157,
+      9165,
+      9173,
+      9221,
+      9213,
+      9181,
+      9205,
+      9189,
+      9197,
+      9472,
+      9480,
+      9488,
+      9496,
+      9673,
+      9507,
+      9515,
+      9523,
+      9531,
+      9539,
+      9550,
+      9558,
+      9566,
+      9574,
+      9582,
+      9590,
+      9598,
+      9606,
+      9617,
+      9625,
+      9644
+    ],
+    "validation": [
+      9655,
+      9662,
+      9693,
+      9998,
+      10006,
+      10014,
+      10022,
+      10033,
+      9987,
+      9979,
+      9971,
+      9963,
+      9955
+    ],
+    "test": [
+      9947,
+      9939,
+      9928,
+      9920,
+      9912,
+      9904,
+      9896,
+      9888,
+      9877,
+      9869,
+      9858,
+      9850,
+      9839
+    ]
+  },
+  "rows": {
+    "train": 38746,
+    "validation": 10755,
+    "test": 11540
+  },
+  "test_by_race": [
+    {
+      "session_key": 9947,
+      "circuit": "Silverstone",
+      "laps": 129,
+      "mae": 1.7118941378483954,
+      "rmse": 2.933873149617823
+    },
+    {
+      "session_key": 9939,
+      "circuit": "Spa-Francorchamps",
+      "laps": 707,
+      "mae": 4.178624413971428,
+      "rmse": 5.093764946638909
+    },
+    {
+      "session_key": 9928,
+      "circuit": "Hungaroring",
+      "laps": 1290,
+      "mae": 2.1141631236714256,
+      "rmse": 2.262954364200673
+    },
+    {
+      "session_key": 9920,
+      "circuit": "Zandvoort",
+      "laps": 932,
+      "mae": 0.8224463832751119,
+      "rmse": 0.9783718810367489
+    },
+    {
+      "session_key": 9912,
+      "circuit": "Monza",
+      "laps": 897,
+      "mae": 2.420042511076047,
+      "rmse": 2.5115340593308444
+    },
+    {
+      "session_key": 9904,
+      "circuit": "Baku",
+      "laps": 789,
+      "mae": 1.8910810734560695,
+      "rmse": 2.0790277534989636
+    },
+    {
+      "session_key": 9896,
+      "circuit": "Singapore",
+      "laps": 1121,
+      "mae": 1.699540981186145,
+      "rmse": 1.898005192525651
+    },
+    {
+      "session_key": 9888,
+      "circuit": "Austin",
+      "laps": 902,
+      "mae": 1.3301456143945525,
+      "rmse": 1.4546516289965397
+    },
+    {
+      "session_key": 9877,
+      "circuit": "Mexico City",
+      "laps": 1066,
+      "mae": 0.8178883506562236,
+      "rmse": 1.077197177088588
+    },
+    {
+      "session_key": 9869,
+      "circuit": "Interlagos",
+      "laps": 998,
+      "mae": 1.1395623331924818,
+      "rmse": 1.3519293747918784
+    },
+    {
+      "session_key": 9858,
+      "circuit": "Las Vegas",
+      "laps": 723,
+      "mae": 2.519036819474285,
+      "rmse": 2.6440027194610063
+    },
+    {
+      "session_key": 9850,
+      "circuit": "Lusail",
+      "laps": 904,
+      "mae": 1.9137221861178046,
+      "rmse": 2.095268141074347
+    },
+    {
+      "session_key": 9839,
+      "circuit": "Yas Marina Circuit",
+      "laps": 1082,
+      "mae": 0.7674695757771576,
+      "rmse": 0.9199476078170251
+    }
+  ],
+  "mlflow_run_id": "ba7dd85da4324047857ffd46093ad68a",
+  "dataset_uri": "gs://f1-pitwall-2026-qh719-data/f1-pitwall/processed/3607cb9ef2c1a44c",
+  "example_input": {
+    "circuit": "Sakhir",
+    "driver": "VER",
+    "team": "Red Bull Racing",
+    "compound": "SOFT",
+    "tyre_age": 15.0,
+    "race_lap": 30,
+    "track_temperature": 29.9,
+    "rainfall": 0.0
+  },
+  "limitations": "Observational race pace estimates, not causal tyre simulations. No fuel, traffic, damage, or setup features. Chronological unseen circuits/drivers may reduce test quality.",
+  "raw_laps": 77373,
+  "eligible_laps": 61041,
+  "ingested_races": 70,
+  "csv_sha256": "3c6e6e52dcce8f966836f39f64ba11a6ae1e3db6dbf7551e0ed46e40af16037a",
+  "training_code_sha256": "d27aeb51cdeca17c79b61bd93f73ca7f5e711ac874c5d4762bde3dbad6baf399"
+}

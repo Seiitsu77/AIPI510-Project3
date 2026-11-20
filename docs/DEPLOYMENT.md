@@ -3,7 +3,7 @@
 ## Verified project and current approval boundary
 
 F1 PitWall project: **f1-pitwall-2026-qh719** (number **649091037888**), organization **742095419661**.
-Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The API is deployed at https://f1-pitwall-api-649091037888.us-central1.run.app; a temporary Vercel frontend is available at https://rushing-amber-691toc5.tmp.now.
+Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The API is deployed at https://f1-pitwall-api-649091037888.us-central1.run.app; a temporary Vercel frontend is available at https://brisk-lagoon-o8ed8dn.tmp.now.
 
 The existing default project `project-4ea00490-f490-4348-86b` belongs to Anime Compass. Do not deploy there, change its IAM, change its resources, or change the default gcloud project. Every command below names the dedicated project. Verify its ID and number immediately before each deployment operation with `deploy/verify-project.ps1`.
 
@@ -11,9 +11,9 @@ The existing default project `project-4ea00490-f490-4348-86b` belongs to Anime C
 
 ## Prerequisites for the historical/model-ready release
 
-The current bootstrap API is intentionally deployed without data/model artifacts and reports readiness accordingly. The following prerequisites apply before declaring the historical ML MVP ready.
+The real dataset and selected fitted model are prepared and verified. The current release uses dataset `3607cb9ef2c1a44c`, model `e08c75d96518`, and the 70 completed 2023–2025 race collection. Repeat these gates before a new historical/model release.
 
-1. Historical OpenF1 access is working. The API returned HTTP 401 during implementation because a live session restricted access globally. Wait until it ends, or configure an already authorized token locally.
+1. Confirm historical OpenF1 access. Initial live-session HTTP 401 restrictions have cleared; the full collection was downloaded successfully. Future restrictions require waiting or an already authorized token, never a bypass.
 2. Ingest and preprocess real data; train on at least five races (preferably the configured 2023–2025 collection).
 3. Run all checks and ensure `artifacts/current.json`, its versioned model, and `data/processed/races.json` exist.
 4. Preserve the approved resource scope. Additional unrelated services are not authorized.
@@ -87,16 +87,26 @@ python scripts/verify_api.py --base-url https://YOUR_CLOUD_RUN_ORIGIN --require-
 
 Verify frontend HTTP 200, then in a working browser select all three historical races; compare drivers, scrub laps, inspect tyre changes and the chart tooltip, and run Pace Lab. Confirm `/predict` and `/predict/batch` use the public Cloud Run API and show its actual model version. Test both supported and unsupported inputs. Validate CORS using the Vercel Origin header.
 
-## Execution limits in this environment
+## Verified release and remaining execution limits
 
-Docker is not installed locally. Both images and their test/HTTP checks passed in Cloud Build; compose execution remains unverified. Browser automation cannot start because the desktop sandbox reports missing runtime ownership; responsive CSS and component interactions have automated checks, but screenshot/visual QA remains open. OpenF1 access is blocked temporarily, so the three real race downloads and historical training have not run. Billing and the scoped resources were approved and provisioned. Public API and temporary frontend HTTP/CORS checks passed. The API correctly reports zero historical races and no model; actual prediction integration remains blocked by historical access.
+- Real dataset: 70 races, 77,373 preserved source laps, 61,041 eligible dry/clean laps. Initial keys `9472`, `9480`, `9488` passed independent raw-to-processed joins and browser Race Control checks.
+- Training data was restored from GCS with SHA-256 verification before training. Raw and processed versions, model binary, MLflow database and all experiment artifacts are stored separately in the dedicated bucket; see `docs/evidence/gcs-publication.json`.
+- Selected Linear Regression model `e08c75d96518`: held-out MAE 1.718 s / RMSE 2.182 s. Validation selected the estimator; 13 later test races were held out. Full metrics/splits are in `docs/evidence/model-evaluation.json`.
+- Current backend Cloud Build: `c8061331-bfb9-4385-90b1-9700395a8826`, successful with 37 Python tests. Image digest: `sha256:5ceba66f97355f5881eac4b47b1010fe7a33770dbf805d6ffb8529576439ca7d`.
+- The frontend is a static-only Next.js export: no raw/processed datasets, fitted models, MLflow database or credentials are uploaded to Vercel. Audited payload: 29 generated HTML/JS/CSS/page files, approximately 1.25 MB. It calls the existing public API for observed/model responses.
+- Temporary preview: https://brisk-lagoon-o8ed8dn.tmp.now. It expires one hour after creation unless claimed. Claim credentials are intentionally excluded from Git. For permanent ownership, sign into Vercel or claim the preview, then configure its exact final origin in API CORS.
+- Cloud Run revision `f1-pitwall-api-00003-6kw` serves the actual dataset and model; public single/batch predictions and all three focus replays passed. Browser checks confirmed the live Pace Lab estimate, curves, historical references and held-out metrics at desktop/mobile sizes. See `docs/evidence/public-api-verification.json` and `deploy/verification.json`.
+- Local Docker/compose remain unavailable; container builds/tests are verified via Cloud Build.
 
-## Verified deployment evidence
+## Reproduce the cloud-backed training release
 
-- API: https://f1-pitwall-api-649091037888.us-central1.run.app (`f1-pitwall-api-00002-qkl`); health/docs/OpenAPI respond, model info returns the expected 503, missing races return 404.
-- Temporary frontend: https://rushing-amber-691toc5.tmp.now; `/` and `/pace-lab` return 200, deployed JS contains the real API URL, allowed-origin CORS preflight returns 200 and an unconfigured origin returns 400.
-- Backend Cloud Build: `ecc7d64f-a342-4d7c-b38d-82c10ec66f30`; image build plus all 22 Python tests including isolated training/MLflow passed.
-- Frontend Cloud Build: `2a29b919-9473-48ba-a94e-6207c2b6bff8`; image build, 7 frontend tests and container HTTP smoke checks passed.
-- `deploy/verification.json` contains digests and readiness limits. Temporary claim credentials are intentionally excluded from Git.
+```powershell
+python -m pipeline.gcs --gcloud-auth --include-raw
+python -m pipeline.sync --dataset-version 3607cb9ef2c1a44c --gcloud-auth --training-only
+python -m pipeline.train
+python -m pipeline.gcs --gcloud-auth --model-only
+```
 
-The temporary frontend uses `npm run export:static`, then `vercel deploy out --temporary --yes`. Windows lacks symlink privileges for the anonymous Next.js builder; deploying generated static assets avoids changing system settings. Permanent deployment still requires Vercel login or claiming the preview. After it is claimed, update CORS to its final approved origin and rebuild with the same public API URL.
+`--gcloud-auth` uses the existing signed-in CLI account in memory; tokens are not printed or saved. All cloud commands verify `f1-pitwall-2026-qh719` / `649091037888`. ADC remains the normal portable SDK option. Model publication rejects a model/dataset version mismatch. The runtime service account needs no GCS write access because the tested deployment image contains the prepared dataset and selected model.
+
+The temporary frontend uses `npm run export:static`, then `vercel deploy out --temporary --yes`. This avoids the Windows anonymous Next.js builder's symlink requirement without weakening system permissions. After claiming, rebuild only if the API origin changes; update CORS if the frontend origin changes.

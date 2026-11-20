@@ -21,13 +21,19 @@ import {
   YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import { estimate, estimateBatch, type Parameters } from "@/lib/api";
+import {
+  estimate,
+  estimateBatch,
+  getReference,
+  type Parameters,
+} from "@/lib/api";
 import {
   compounds,
   lapTime,
   type ModelInfo,
   type Prediction,
   type Replay,
+  type HistoricalReference,
 } from "@/lib/types";
 const initial: Parameters = {
   circuit: "",
@@ -54,8 +60,43 @@ export default function PaceLab({
     [pending, setPending] = useState(false),
     [error, setError] = useState("");
   const sequence = useRef(0);
+  const [reference, setReference] = useState<HistoricalReference | null>(null);
+  const [referenceError, setReferenceError] = useState("");
+  const [referenceLoading, setReferenceLoading] = useState(false);
   useEffect(() => {
-    const first = model.combinations?.[0];
+    let active = true;
+    setReference(null);
+    setReferenceError("");
+    if (!model.available || !params.circuit || replay?.race.is_fixture) return;
+    setReferenceLoading(true);
+    getReference({
+      circuit: params.circuit,
+      driver: params.driver,
+      team: params.team,
+      compound: params.compound,
+    })
+      .then((data) => {
+        if (active) setReference(data);
+      })
+      .catch((error) => {
+        if (active) setReferenceError(error.message);
+      })
+      .finally(() => {
+        if (active) setReferenceLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    model.available,
+    params.circuit,
+    params.driver,
+    params.team,
+    params.compound,
+    replay?.race.is_fixture,
+  ]);
+  useEffect(() => {
+    const first = model.example_input || model.combinations?.[0];
     if (first) {
       setParams({
         ...initial,
@@ -65,7 +106,13 @@ export default function PaceLab({
             name,
             Math.max(
               min,
-              Math.min(max, Number(initial[name as keyof Parameters])),
+              Math.min(
+                max,
+                Number(
+                  model.example_input?.[name as keyof Parameters] ??
+                    initial[name as keyof Parameters],
+                ),
+              ),
             ),
           ]),
         ),
@@ -451,14 +498,34 @@ export default function PaceLab({
               <p>
                 {replay?.race.is_fixture
                   ? "UI fixture values are excluded from historical reference."
-                  : observed.length
-                    ? `${replay?.race.location} · ${params.driver} · ${params.compound} · eligible laps only`
-                    : "No matching real session is loaded in this workspace."}
+                  : referenceLoading
+                    ? "Loading observed historical laps…"
+                    : referenceError
+                      ? `Historical reference unavailable: ${referenceError}`
+                      : reference?.lap_count
+                        ? `${params.circuit} · ${params.driver} · ${params.compound} · ${reference.session_keys.length} historical sessions · eligible laps only`
+                        : observed.length
+                          ? `${replay?.race.location} · ${params.driver} · ${params.compound} · eligible laps only`
+                          : "No matching real session is loaded in this workspace."}
               </p>
+              {reference && reference.observations.length > 0 && (
+                <div className="reference-samples">
+                  {reference.observations.slice(-4).map((row, index) => (
+                    <span key={`${row.session_key}-${row.race_lap}-${index}`}>
+                      #{row.session_key} · L{row.race_lap}{" "}
+                      <b>{lapTime(row.lap_duration)}</b>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
-              <strong className="mono">{lapTime(mean)}</strong>
-              <span>{observed.length} observed laps · mean</span>
+              <strong className="mono">
+                {lapTime(reference ? reference.mean_lap_duration : mean)}
+              </strong>
+              <span>
+                {reference?.lap_count ?? observed.length} observed laps · mean
+              </span>
             </div>
           </section>
         </div>

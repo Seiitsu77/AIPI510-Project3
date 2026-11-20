@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
@@ -31,8 +31,11 @@ def stints(session_key:int):
 
 @app.get("/races/{session_key}/replay")
 def replay(session_key:int):
-    store.race_data(session_key)
+    if session_key not in {race["session_key"] for race in store.races()}:
+        raise HTTPException(404, "Historical session not ingested.")
     path = store.processed_dir() / f"{session_key}.json"
+    if not path.exists():
+        raise HTTPException(503, "Historical dataset file is missing.")
     return store.cached_replay(str(path), path.stat().st_mtime_ns)
 
 @app.get("/model/info")
@@ -41,6 +44,13 @@ def model_info():
         return load_model()["info"]
     except HTTPException as error:
         return JSONResponse(status_code=503, content={"available":False, "detail":error.detail})
+
+@app.get("/reference")
+def reference(circuit: str = Query(min_length=1, max_length=80),
+              driver: str = Query(min_length=2, max_length=6),
+              team: str = Query(min_length=1, max_length=80),
+              compound: str = Query(pattern="^(SOFT|MEDIUM|HARD|INTERMEDIATE|WET)$")):
+    return store.historical_reference(circuit, driver, team, compound)
 
 @app.post("/predict")
 def prediction(item:PredictionInput):

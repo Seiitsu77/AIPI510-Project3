@@ -138,6 +138,7 @@ export default function PitWall({
           setRaces(items);
           const chosen =
             items.find((r) => r.session_key === readWorkspace()?.key) ||
+            items.find((r) => r.session_key === 9472) ||
             items[0];
           setKey(chosen.session_key);
           setSeason(chosen.year);
@@ -207,7 +208,16 @@ export default function PitWall({
         setSelected(
           restored.length
             ? restored
-            : result.drivers.slice(0, 3).map((d) => d.driver_number),
+            : (
+                result.snapshots[
+                  Math.min(
+                    saved?.key === result.race.session_key ? saved.lap : lap,
+                    result.race.total_laps,
+                  ) - 1
+                ]?.drivers || result.drivers
+              )
+                .slice(0, 3)
+                .map((d) => d.driver_number),
         );
       })
       .catch((error) => {
@@ -479,7 +489,7 @@ export default function PitWall({
             </div>
           </div>
           <div
-            className={`source-banner ${fixture ? "fixture-banner" : ""}`}
+            className={`source-banner ${fixture || race?.data_warnings?.length ? "fixture-banner" : ""}`}
             role="status"
           >
             <span>
@@ -494,7 +504,9 @@ export default function PitWall({
               <span>
                 {fixture
                   ? `${apiError} Timing, strategy and weather below are illustrative, not race records.`
-                  : "OpenF1 records · replay of completed sessions · never live telemetry"}
+                  : race?.data_warnings?.length
+                    ? race.data_warnings.join(" ")
+                    : "OpenF1 records · replay of completed sessions · never live telemetry"}
               </span>
             </span>
             <button

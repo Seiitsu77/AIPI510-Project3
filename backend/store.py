@@ -1,6 +1,7 @@
 from bisect import bisect_right
 from functools import lru_cache
 import json
+import pandas as pd
 from fastapi import HTTPException
 from pipeline.settings import config, resolve
 from pipeline.preprocess import timestamp
@@ -12,12 +13,12 @@ def processed_dir():
 
 def races():
     path = processed_dir() / "races.json"
-    return json.loads(path.read_text()) if path.exists() else []
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 
 
 @lru_cache(maxsize=8)
 def _read(path, modified):
-    return json.loads(resolve(path).read_text())
+    return json.loads(resolve(path).read_text(encoding="utf-8"))
 
 
 def race_data(key):
@@ -61,10 +62,14 @@ def replay(data):
             for field, groups in (("position",positions),("gap_to_leader",intervals)):
                 times, rows = groups.get(key, ([],[]))
                 j = bisect_right(times, point)-1
-                if j >= 0 and (point-times[j]).total_seconds() <= 90:
+                # /position is a change-event stream, not a periodic heartbeat.
+                # An unchanged race lead remains valid for many minutes. Only
+                # high-frequency interval observations have the freshness cap.
+                if j >= 0 and (field == "position" or (point-times[j]).total_seconds() <= 90):
                     values[field] = rows[j].get(field)
             completed = last["race_lap"] if last else 0
-            stint = next((s for s in data["stints"] if s["driver_number"] == key and s.get("lap_start") is not None and s.get("lap_end") is not None and s["lap_start"] <= completed <= s["lap_end"]), None)
+            matches = [s for s in data["stints"] if s["driver_number"] == key and s.get("lap_start") is not None and s.get("lap_end") is not None and s["lap_start"] <= completed <= s["lap_end"]]
+            stint = matches[0] if len(matches) == 1 else None
             tower.append({**driver, **values, "completed_lap": completed, "lap_duration": last["lap_duration"] if last else None,
                           "compound": last["compound"] if last else None, "tyre_age": last["tyre_age"] if last else None,
                           "stint": stint, "exclusions": last["exclusions"] if last else []})
@@ -76,4 +81,27 @@ def replay(data):
 
 @lru_cache(maxsize=8)
 def cached_replay(path, modified):
+    compact = resolve(path).with_name(resolve(path).stem + "-replay.json")
+    if compact.exists():
+        return json.loads(compact.read_text(encoding="utf-8"))
     return replay(_read(path, modified))
+
+
+@lru_cache(maxsize=1)
+def reference_frame(path, modified):
+    frame = pd.read_csv(path)
+    return frame[frame.eligible.eq(True)].copy()
+
+
+def historical_reference(circuit, driver, team, compound):
+    path = processed_dir() / "laps.csv"
+    if not path.exists():
+        raise HTTPException(503, "Historical feature dataset is not available.")
+    frame = reference_frame(str(path), path.stat().st_mtime_ns)
+    selected = frame[(frame.circuit == circuit) & (frame.driver == driver) &
+                     (frame.team == team) & (frame.compound == compound)]
+    sample = selected.iloc[::max(1, len(selected) // 180)].head(180)
+    return {"source": "OpenF1", "lap_count": len(selected),
+            "mean_lap_duration": float(selected.lap_duration.mean()) if len(selected) else None,
+            "session_keys": sorted(int(key) for key in selected.session_key.unique()),
+            "observations": sample[["session_key", "race_lap", "tyre_age", "lap_duration"]].to_dict(orient="records")}

@@ -61,3 +61,20 @@ def test_cors_uses_explicit_origin(client):
     assert response.headers["access-control-allow-origin"]=="http://localhost:3000"
     denied=client.options("/predict",headers={"Origin":"https://untrusted.example","Access-Control-Request-Method":"POST"})
     assert denied.status_code==400
+
+
+def test_historical_reference_only_uses_matching_eligible_observations(client,tmp_path):
+    directory=tmp_path/"processed";directory.mkdir()
+    rows=[{**INPUT,"session_key":1,"eligible":True,"lap_duration":90},
+          {**INPUT,"session_key":2,"eligible":True,"lap_duration":92},
+          {**INPUT,"session_key":2,"eligible":False,"lap_duration":150},
+          {**INPUT,"session_key":2,"driver":"OTHER","eligible":True,"lap_duration":80}]
+    pd.DataFrame(rows).to_csv(directory/"laps.csv",index=False)
+    query={key:INPUT[key] for key in ("circuit","driver","team","compound")}
+    response=client.get("/reference",params=query)
+    assert response.status_code==200
+    data=response.json()
+    assert data["source"]=="OpenF1" and data["lap_count"]==2
+    assert data["mean_lap_duration"]==91 and data["session_keys"]==[1,2]
+    assert [row["lap_duration"] for row in data["observations"]]==[90,92]
+    assert client.get("/reference",params={**query,"compound":"UNKNOWN"}).status_code==422

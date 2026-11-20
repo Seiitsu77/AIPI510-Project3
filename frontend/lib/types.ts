@@ -9,6 +9,8 @@ export type Race = {
   total_laps: number;
   source: string;
   is_fixture: boolean;
+  data_warnings?: string[];
+  missing_lap_records?: number;
 };
 export type Driver = {
   driver_number: number;
@@ -69,6 +71,18 @@ export type Prediction = {
   model_version: string;
   dataset_version: string;
 };
+export type HistoricalReference = {
+  source: string;
+  lap_count: number;
+  mean_lap_duration: number | null;
+  session_keys: number[];
+  observations: {
+    session_key: number;
+    race_lap: number;
+    tyre_age: number;
+    lap_duration: number;
+  }[];
+};
 export type ModelInfo = {
   available: boolean;
   detail?: string;
@@ -94,6 +108,16 @@ export type ModelInfo = {
   split?: Record<string, number[]>;
   rows?: Record<string, number>;
   limitations?: string;
+  example_input?: {
+    circuit: string;
+    driver: string;
+    team: string;
+    compound: string;
+    tyre_age: number;
+    race_lap: number;
+    track_temperature: number;
+    rainfall: number;
+  };
 };
 export const compounds: Record<string, string> = {
   SOFT: "#e64b59",

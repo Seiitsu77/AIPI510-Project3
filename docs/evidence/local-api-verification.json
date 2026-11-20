@@ -1,0 +1,65 @@
+{
+  "verified_at": "2026-11-20T20:42:36.934698+00:00",
+  "base_url": "http://localhost:8000",
+  "health": {
+    "status": "ok",
+    "historical_races": 70,
+    "model_ready": true,
+    "model_version": "e08c75d96518"
+  },
+  "races": [
+    {
+      "session_key": 9472,
+      "location": "Sakhir",
+      "laps": 1129,
+      "stints": 63,
+      "total_laps": 57,
+      "observed": true
+    },
+    {
+      "session_key": 9480,
+      "location": "Jeddah",
+      "laps": 902,
+      "stints": 39,
+      "total_laps": 50,
+      "observed": true
+    },
+    {
+      "session_key": 9488,
+      "location": "Melbourne",
+      "laps": 998,
+      "stints": 55,
+      "total_laps": 58,
+      "observed": true
+    }
+  ],
+  "model": {
+    "version": "e08c75d96518",
+    "dataset_version": "3607cb9ef2c1a44c",
+    "algorithm": "linear_regression",
+    "test_metrics": {
+      "mae": 1.718158829700287,
+      "rmse": 2.1824846063173524
+    },
+    "mlflow_run_id": "ba7dd85da4324047857ffd46093ad68a"
+  },
+  "prediction": {
+    "input": {
+      "circuit": "Sakhir",
+      "driver": "VER",
+      "team": "Red Bull Racing",
+      "compound": "SOFT",
+      "tyre_age": 15.0,
+      "race_lap": 30,
+      "track_temperature": 29.9,
+      "rainfall": 0.0
+    },
+    "output": {
+      "lap_duration": 97.10094251561898,
+      "model_version": "e08c75d96518",
+      "dataset_version": "3607cb9ef2c1a44c"
+    },
+    "batch_consistent": true,
+    "historical_reference_laps": 71
+  }
+}

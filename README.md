@@ -1,40 +1,59 @@
 # F1 PitWall
 
-A race engineering workspace for exploring historical Formula 1 laps, comparing drivers and tyre stints, and estimating race pace with a reproducible supervised regression pipeline.
+A race engineering dashboard for **real historical Formula 1 records**, driver/tyre comparisons, and reproducible lap-pace estimation. Next.js/TypeScript serves Race Control and Pace Lab; FastAPI serves cached OpenF1 data and the fitted scikit-learn pipeline.
 
-**Preview:** https://rushing-amber-691toc5.tmp.now (temporary; expires after one hour unless claimed). **API:** https://f1-pitwall-api-649091037888.us-central1.run.app/docs.
+- API: [Cloud Run documentation](https://f1-pitwall-api-649091037888.us-central1.run.app/docs).
+- Frontend: [Vercel preview](https://brisk-lagoon-o8ed8dn.tmp.now). Anonymous previews expire after one hour unless claimed; the private claim link is supplied in chat, never committed.
+- Review: [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1), branch `feat/f1-pitwall-platform`. `main` intentionally stays empty until review/merge.
 
-**Current state:** deployed frontend and FastAPI service; synchronized synthetic design fixture; implemented historical ingestion, GCS versioning, training and prediction code. OpenF1 currently restricts historical requests during a live session, so no real race dataset or production model is installed. Predictions and evaluation metrics remain unavailable in the product. The synthetic fixture is explicitly labeled and never used for training.
+## Real data and model results
+
+The versioned OpenF1 dataset contains **70 completed 2023–2025 races**, **77,373 observed laps**, and **61,041 eligible dry/clean laps**. The initial complete replay sessions are:
+
+| Race | Session key | Observed laps | Stints | Weather observations |
+| --- | --- | --- | --- | --- |
+| Bahrain 2024 / Sakhir | 9472 | 1,129 | 63 | 157 |
+| Saudi Arabia 2024 / Jeddah | 9480 | 902 | 39 | 146 |
+| Australia 2024 / Melbourne | 9488 | 998 | 55 | 144 |
+
+All three preserve lap grain, have no duplicate driver/lap keys or internal lap-number gaps, and have no overlapping stint matches or future-weather joins. Source retirement/null records remain visible and ineligible for training. Other historical sessions can have missing source laps or overlapping source stints; these are flagged, never filled with synthetic records. See the [three-race audit](docs/evidence/data-quality.json) and [full audit](docs/evidence/all-data-quality.json).
+
+A chronological race-group split uses 43 training, 13 validation and 13 test races. One of the 70 source races has no eligible dry laps and does not enter the split. No test race is used for fitting or model selection.
+
+| Candidate | Validation MAE (s) | Validation RMSE (s) |
+| --- | --- | --- |
+| **Linear Regression — selected** | **1.729** | **2.391** |
+| HistGradientBoosting | 2.265 | 3.335 |
+
+The selected model's held-out test results are **MAE 1.718 s** and **RMSE 2.182 s**, across **11,540 eligible laps in 13 races**. These describe filtered historical observations, not arbitrary laps, causal tyre degradation, or race-result guarantees.
+
+- Dataset version: `3607cb9ef2c1a44c`.
+- Model version: `e08c75d96518`.
+- MLflow run: `ba7dd85da4324047857ffd46093ad68a`.
+- Full metrics, split keys, per-race errors, source checksum and example input: [model evaluation](docs/evidence/model-evaluation.json).
+- Actual cloud data/model locations and checksum verification: [GCS publication receipt](docs/evidence/gcs-publication.json).
 
 ## Architecture
 
 ```text
-OpenF1 → validated raw cache → lap/stint/driver/weather joins → versioned processed data
-                                      ↓                           ↕ GCS
-                       chronological race-group split
+OpenF1 → validated raw cache → lap/stint/driver/backward-weather joins
                                       ↓
-             Linear Regression + HistGradientBoosting → MLflow
+                  versioned GCS dataset + checksum-verified restore
                                       ↓
-                   versioned preprocessing + model artifact
+       chronological train / validation / test split → LR + HGB → MLflow
                                       ↓
-                          FastAPI / Cloud Run
+              fitted preprocessing + selected model + atomic version pointer
                                       ↓
-              Next.js Race Control + Pace Lab / Vercel
+                       FastAPI / Google Cloud Run
+                                      ↓
+               Next.js Race Control + Pace Lab / Vercel
 ```
 
-- `frontend/`: Next.js App Router, TypeScript, Tailwind 4, shadcn-style Radix/CVA button, Recharts, Motion and Lucide. `/` is Race Control; `/pace-lab` is the prediction workspace.
-- `backend/`: FastAPI, Pydantic input contracts, cached historical replay snapshots, exact serialized preprocessing at inference, explicit supported-input validation and CORS origins.
-- `pipeline/`: OpenF1 validation/ingestion, backward weather joins, exclusion flags, GCS uploads/restore, chronological evaluation and MLflow logging.
-- `tests/` and `frontend/tests/`: temporal/data integrity, estimator serialization, API, UI synchronization and model-error tests. Synthetic contract fixtures are isolated from product data.
-- `deploy/`: dedicated cloud project identity, project verification guard and Cloud Build configuration.
+`frontend/` contains the synchronized dashboard, Recharts charts, Motion transitions, Tailwind styles and Radix/CVA UI components. `backend/` contains Pydantic request validation, replay/reference endpoints and exact fitted preprocessing at inference. `pipeline/` contains source contracts, resumable ingestion, preprocessing, data audits, GCS operations and training. `tests/` includes recorded real-response samples as well as isolated synthetic unit fixtures. Raw datasets, model binaries, MLflow stores and credentials are excluded from Git.
 
-Race Control synchronizes the replay slider, lap number, timing tower, weather, tyre status, chart reference line and stint timeline. Compare up to three drivers, select chart ranges, show/hide flagged laps, click stint segments, use arrow keys, play a lap-by-lap replay and export the compared lap records. A data guide explains source and replay semantics.
+## Local setup
 
-Pace Lab accepts circuit, driver/team, compound, tyre age, race lap, track temperature and supported rainfall. It calls `/predict` and `/predict/batch`, shows actual API model versions, renders compound curves and held-out diagnostics, and clears stale predictions when inputs change. Unsupported combinations are unavailable. No hardcoded lap estimates or fake model metrics are presented.
-
-## Local setup (Windows PowerShell)
-
-Requires Python 3.13 and Node.js 24 LTS (or a compatible version supported by the installed Next.js). Use repository-root commands unless noted.
+Use Python 3.13 and Node.js 24 LTS. From the repository root in PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -52,114 +71,81 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. API docs: http://localhost:8000/docs. With no ingested races, the UI uses the amber **SYNTHETIC UI FIXTURE** mode. If the API cannot be reached, the same source warning remains visible. This is a design preview, not three historical race records. Model outputs remain unavailable until real training completes.
+Open [localhost:3000](http://localhost:3000). Local API docs are at [localhost:8000/docs](http://localhost:8000/docs). Use `.venv/bin/python` on macOS/Linux. Commands below assume the virtual environment is activated, or replace `python` with its full venv path. Root `.env` configures Python; `frontend/.env.local` configures the browser's `NEXT_PUBLIC_API_URL`.
 
-On macOS/Linux use `.venv/bin/python` and `source .venv/bin/activate`. Root `.env` configures Python; `frontend/.env.local` configures the browser API origin. Never commit either file.
+Race Control supports driver comparison, lap scrubbing/playback, chart ranges, flagged-lap inclusion, stint selection and CSV export. Pace Lab calls the real single/batch model API, shows real held-out diagnostics, and queries observed historical reference laps. Missing data/model errors are explicit. A clearly labeled frontend-only synthetic fixture remains a fallback for an unreachable/empty API; it is never training data or a historical reference.
 
-## Dataset and ingestion
-
-Source: [OpenF1](https://openf1.org/docs/), an unofficial public Formula 1 data service. The pipeline requests sessions, drivers, laps, stints, weather, positions, intervals, pit events and race-control messages. The initial replay scope is three completed 2024 races at Bahrain, Jeddah and Melbourne; the broader training scope targets completed 2023–2025 races. Availability depends on OpenF1; historical access can be temporarily restricted during live sessions. No live streaming or high-frequency telemetry endpoints are used.
-
-After activating your virtual environment, or replacing `python` with its full venv path:
+## Reproduce ingestion, audit and training
 
 ```powershell
 python -m pipeline.ingest --demo
-python -m pipeline.preprocess
-# Broader training dataset, cached and resumable:
+# Or all configured completed 2023–2025 races:
 python -m pipeline.ingest --all
 python -m pipeline.preprocess
-python -m pipeline.train
-```
-
-Inspect `data/processed/dataset.json` for counts, exclusions, version and hashes. Raw responses live in `data/raw/<session_key>/`; processed replay JSON and `laps.csv` live in `data/processed/`. Cache reads are validated and do not re-download. `--refresh` explicitly replaces cached endpoint responses; preprocessing verifies session checksums to reject incomplete refreshes. Future/unfinished races are excluded.
-
-Pydantic contracts reflect inspected OpenF1 documentation. Actual success-response inspection and three-race integration remain blocked by the upstream HTTP 401. Review source fields and the [data/model decisions](docs/DATA_MODEL.md) when historical access returns.
-
-## Model training and evaluation
-
-`config.yaml` controls source years/locations/paths, seed, split fractions, minimum races, lap filters, experiment name, model hyperparameters and selection metric. Set `CONFIG_PATH` to use another YAML file.
-
-Target: lap duration in seconds. Features: circuit, driver, team, compound, tyre age at lap start, race lap, track temperature and rainfall. No actual lap/sector results or future events enter the features. Weather is joined backward only, within five minutes. Pit/start/caution/deleted/invalid/wet laps are flagged and excluded as configured; raw observations remain available for replay.
-
-The earliest 60% of race groups train the candidate pipelines, the next 20% select between Linear Regression and HistGradientBoosting, and the latest 20% are a held-out test. At least five real races are required. Both preprocessing and estimator are serialized together. MLflow records parameters, validation errors, final held-out MAE/RMSE, plots, split keys and dataset/model versions. Only the selected model is scored on test races; no refit uses test data.
-
-**Historical MAE and RMSE: not yet available.** The complete training/logging/serialization workflow is exercised with isolated synthetic contract tests; their values are not product evaluation results.
-
-```powershell
+python -m pipeline.quality --session-keys 9472 9480 9488
+python -m pipeline.quality --output docs/evidence/all-data-quality.json
 python -m pipeline.train
 mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 ```
 
-The chosen version is in `artifacts/current.json`; its immutable joblib bundle contains the fitted pipeline and matching model information. The serving process checks the atomic pointer and can load a newly trained version. Only trusted training artifacts belong in this directory. SQLite tracking depends on the pinned SQLAlchemy 2.0 version; the integration tests caught and resolved an incompatibility with SQLAlchemy 2.1.
+OpenF1's Bahrain location is **Sakhir**, not Bahrain. Requests reuse connections, respect the configured 2.1-second delay and server `Retry-After`, and reuse validated caches. Exact `404 No results found` responses are recorded as empty source endpoints; other errors remain errors. Global live-session access restrictions may temporarily require an existing authorized `OPENF1_TOKEN` or waiting. No restriction is bypassed.
 
-## Cloud storage and deployment
+`config.yaml` controls years, paths, request policy, eligibility rules, split fractions, seed, model hyperparameters and selection metric. `CONFIG_PATH` selects another config. Raw responses and manifests are stored under `data/raw/`; cleaned lap features and materialized replay snapshots are under `data/processed/`. Weather joins use only observations at/before lap start, at most five minutes old. Tyre age includes source-reported prior usage. Pit/start/caution/wet/invalid/ambiguous observations are flagged and excluded as configured. See [data/model decisions](docs/DATA_MODEL.md).
 
-A separate project has been created: `f1-pitwall-2026-qh719` / `649091037888`. Anime Compass remains in its existing default project. F1 PitWall commands use explicit project IDs and verify identity before deployment. The user approved billing and scoped F1 resources; its dedicated private GCS bucket, image repository, and service accounts are provisioned. Both container builds and tests passed in Cloud Build. The API is deployed publicly; a temporary Vercel preview calls its real origin.
+The complete preprocessing pipeline is serialized with the estimator. MLflow records both candidates, validation errors, the selected model's test errors, evaluation plots, split keys, configuration and dataset/model versions. `artifacts/current.json` atomically selects a trusted versioned joblib bundle. Never load untrusted model files.
 
-Versioned GCS uploads are opt-in:
+## Google Cloud Storage
+
+Only project **f1-pitwall-2026-qh719** / **649091037888** is authorized. The existing Anime Compass default project is unchanged. Billing and the dedicated GCS/Cloud Run/build resources were explicitly approved. Every deployment operation must verify the dedicated project identity and name its `--project`.
 
 ```powershell
+# ADC is the normal SDK authentication path:
+gcloud auth application-default login
 python -m pipeline.ingest --all --upload
 python -m pipeline.preprocess --upload
-python -m pipeline.sync --dataset-version EXACT_16_CHARACTER_VERSION
+# Alternatively use the already signed-in gcloud account in memory:
+python -m pipeline.gcs --gcloud-auth --include-raw
+python -m pipeline.sync --dataset-version 3607cb9ef2c1a44c --gcloud-auth --training-only
+python -m pipeline.train
+python -m pipeline.gcs --gcloud-auth --model-only
 ```
 
-Set `GCS_BUCKET`, `GOOGLE_CLOUD_PROJECT` and Application Default Credentials locally. No service-account keys are required or committed. Raw and processed datasets occupy separate versioned prefixes. Cloud training can restore an exact processed version with checksum verification.
+The current real model was trained after restoring the checksum-verified GCS CSV. Raw data, processed versions, models and MLflow backups use separate prefixes. Processed objects have SHA-256 checksums; manifests and pointers publish after their referenced objects. Tokens are never saved or printed. A fresh clone can restore datasets and trained artifacts from authorized GCS access; binary assets are intentionally not in Git.
 
-See [deployment instructions](docs/DEPLOYMENT.md) for the separate project's billing approval boundary, bucket, service accounts, image repository, Cloud Build, Cloud Run, Vercel, CORS and endpoint checks. The public API and temporary frontend are HTTP-verified; actual historical predictions remain unavailable until real data/model artifacts are installed. See `deploy/verification.json`.
-
-## API
+## API and public verification
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /health` | Process health plus explicit data/model readiness |
-| `GET /races` | Only actually ingested historical sessions; empty before ingestion |
-| `GET /races/{key}/laps` | Preserved observed laps and exclusion flags |
+| `GET /health` | Process, historical-data and model readiness |
+| `GET /races` | Actually ingested completed race sessions |
+| `GET /races/{key}/laps` | Observed lap records and training-exclusion flags |
 | `GET /races/{key}/stints` | Historical stint records |
-| `GET /races/{key}/replay` | Compact shared lap snapshots and analysis data |
-| `POST /predict` | One validated estimate plus model/dataset version |
-| `POST /predict/batch` | Up to 240 real model estimates for curves |
-| `GET /model/info` | Supported inputs, model version, real evaluation information |
+| `GET /races/{key}/replay` | Compact shared snapshots and lap/stint analysis data |
+| `GET /reference` | Matching eligible observed laps by circuit/driver/team/compound |
+| `GET /model/info` | Model/dataset versions, supported inputs and real diagnostics |
+| `POST /predict` | Validated lap estimate plus model/dataset versions |
+| `POST /predict/batch` | Up to 240 real estimates for compound curves |
 
-`/model/info` and prediction endpoints return HTTP 503 if no trained model exists. Unknown races return 404. Invalid, unsupported or extrapolating prediction inputs return 422. Extra input fields are forbidden. The team must match a trained circuit/driver/team/compound combination.
+`/docs` provides interactive request schemas. `/model/info` supplies a valid `example_input`. Unsupported values, combinations and numeric extrapolation are rejected with 422; absent models return 503. Extra input fields are forbidden. CORS allows only explicitly configured frontend origins.
 
 ```powershell
-python scripts/verify_api.py
-# After actual data/model deployment:
-python scripts/verify_api.py --base-url https://YOUR_API_ORIGIN --require-ready
+python scripts/verify_api.py --require-ready
+python scripts/verify_api.py --base-url https://f1-pitwall-api-649091037888.us-central1.run.app --require-ready --output docs/evidence/public-api-verification.json
 ```
 
-Get supported input values and numeric ranges from `/model/info`; submit the eight feature fields as JSON to `/predict`. `/docs` provides interactive request examples and validation schemas.
-
-## Docker
-
-Docker is not installed locally. Both Dockerfiles built successfully in Cloud Build; 22 Python tests, 7 frontend tests and both frontend container HTTP routes passed there. Local compose execution remains unverified.
+## Containers and deployment
 
 ```powershell
 docker compose up --build
-# Training/ingestion base image (no preexisting model required):
 docker build --target base -t f1-pitwall-pipeline .
-docker run --rm --env-file .env -v "${PWD}/data:/app/data" -v "${PWD}/artifacts:/app/artifacts" f1-pitwall-pipeline python -m pipeline.ingest --demo
-docker run --rm --env-file .env -v "${PWD}/data:/app/data" -v "${PWD}/artifacts:/app/artifacts" f1-pitwall-pipeline python -m pipeline.preprocess
 docker run --rm --env-file .env -v "${PWD}/data:/app/data" -v "${PWD}/artifacts:/app/artifacts" f1-pitwall-pipeline python -m pipeline.train
 ```
 
-For experiment persistence mount a writable directory and set `MLFLOW_TRACKING_URI` to a SQLite file there, or use an existing authorized MLflow server. GCS uploads in containers require explicitly supplied ADC or workload identity; no credentials are baked into images. Bind mounts must be writable by the non-root container user for training. The frontend API URL is a build argument and must resolve from the **browser**, not the internal Docker network.
+Both Dockerfiles have been built/tested through Cloud Build. Local compose execution remains unverified because this computer has no Docker engine. Container bind mounts must be writable by the non-root training user. The frontend API URL is compiled at build time and must resolve from the browser, not just Docker's internal network. MLflow needs a persistent directory/database/server if training in ephemeral containers; no credentials are baked into images.
 
-## Static preview fallback
+See [deployment instructions](docs/DEPLOYMENT.md) for dedicated-project identity checks, service accounts, Cloud Build, Cloud Run, Vercel, CORS and resource limits. Only the dedicated API is updated; Anime Compass resources/default configuration are never changed.
 
-The default build remains a standalone Next.js server for Docker and normal Vercel deployment. The optional static export supports the same client-side dashboard/API workflow and avoids Windows builder symlink requirements:
-
-```powershell
-cd frontend
-# Configure NEXT_PUBLIC_API_URL in .env.local first.
-npm run export:static
-npx vercel deploy out --temporary --yes
-```
-
-The temporary preview must be claimed within one hour to keep it. An authenticated Vercel project remains the permanent deployment path. Do not commit `.vercel` metadata or claim credentials.
-
-## Verification
+## Tests and CI
 
 ```powershell
 New-Item -ItemType Directory -Path .test-tmp -Force
@@ -169,18 +155,15 @@ npm test
 npm run typecheck
 npm run build
 npm audit
+# Static Vercel preview fallback:
+npm run export:static
+npx vercel deploy out --temporary --yes
 ```
 
-The explicit pytest temporary directory avoids an existing Windows temp-folder ACL failure on this machine. Test temp paths and environments are ignored by Git. Frontend tests cover synchronized lap/tyre updates, three-driver limits, session selection, missing models, API prediction calls, stale output clearing and API errors. Python tests cover schema/cache/access restrictions, temporal joins, tyre age, race-group holdouts, replay cutoffs, input validation, CORS, fitted preprocessing, both candidate models and MLflow.
+Use `python -m pytest`, matching CI and Docker, so repository packages are on the import path. The workspace temp directory avoids this machine's legacy Windows temp-folder ACL issue. Tests cover temporal joins, source 404 semantics, sparse position events, red flags, ambiguity, recorded real-response contracts, serialized inference, historical reference, cloud isolation, model orchestration and frontend interactions. Current local verification: 37 Python tests and 7 frontend tests pass. CI runs on PR #1; evidence for deployment checks is under `docs/evidence/`.
 
-Browser visual QA cannot start because of a desktop sandbox runtime error. Responsive styles are implemented, but desktop/mobile screenshots, actual chart pointer behavior and visual reference matching remain unverified; the attachment supplied text only, without a reference image.
+## Collaboration, ethics and limitations
 
-## Collaboration and assignment
+Each teammate must submit at least one real PR; see [CONTRIBUTING.md](CONTRIBUTING.md). No PR/authorship history is fabricated and PR #1 is not automatically merged. [STATUS.md](STATUS.md) tracks remaining work.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for suggested teammate ownership and a PR workflow. Each teammate must author and submit at least one real pull request. No GitHub remote or PR history has been created or fabricated.
-
-[STATUS.md](STATUS.md) tracks completed work, remaining tasks and blockers. [Data/model decisions](docs/DATA_MODEL.md) cover exclusions, replay accuracy, ethics and limitations.
-
-## Limitations
-
-Historical downloads and real model evaluation await OpenF1 access. The public deployment currently serves a fixture-based frontend and an API with no historical dataset/model. There are no operational guarantees. Weather/timing records can be incomplete; replay timestamps are approximate; caution filtering is conservative and may discard useful laps. Observational prediction curves do not identify causal tyre effects or driver skill. Fuel, traffic, damage, setup, regulations and strategy are omitted. Use this academic tool for analysis and demonstration, not actual race safety decisions. No affiliation with Formula 1 or FIA is implied.
+OpenF1 is unofficial; this academic project is unaffiliated with Formula 1, FIA or teams. Respect source access/rate policies and attribution. Models are observational, not causal or physical tyre simulations. Fuel, traffic, damage, setup and regulatory changes are omitted. Errors apply to the filtered evaluation population and can be optimistic relative to all racing laps. Some source sequences are incomplete; ambiguous tyre assignments are excluded. Do not use the demonstration for safety-critical race operations or promises about race outcomes.

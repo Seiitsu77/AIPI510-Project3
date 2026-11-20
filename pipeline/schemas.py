@@ -66,6 +66,7 @@ class Control(Record):
     scope: str | None = None
     driver_number: int | None = None
     lap_number: int | None = None
+    sector: int | None = None
 
 CONTRACTS = {"sessions": Session, "drivers": Driver, "laps": Lap, "stints": Stint,
              "weather": Weather, "position": Position, "intervals": Interval,

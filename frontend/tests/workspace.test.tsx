@@ -9,7 +9,13 @@ import {
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import PitWall from "@/components/pitwall";
 import PaceLab from "@/components/pace-lab";
-import { getRaces, getModel, estimate, estimateBatch } from "@/lib/api";
+import {
+  getRaces,
+  getModel,
+  estimate,
+  estimateBatch,
+  getReference,
+} from "@/lib/api";
 import { lapTime, type ModelInfo } from "@/lib/types";
 vi.mock("@/lib/api", () => ({
   getRaces: vi.fn(),
@@ -17,6 +23,7 @@ vi.mock("@/lib/api", () => ({
   getReplay: vi.fn(),
   estimate: vi.fn(),
   estimateBatch: vi.fn(),
+  getReference: vi.fn(),
 }));
 vi.mock("@/components/pace-chart", () => ({
   default: () => <div aria-label="Pace chart" />,
@@ -36,6 +43,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   vi.mocked(getRaces).mockResolvedValue([]);
+  vi.mocked(getReference).mockResolvedValue({
+    source: "OpenF1",
+    lap_count: 0,
+    mean_lap_duration: null,
+    session_keys: [],
+    observations: [],
+  });
   vi.mocked(getModel).mockResolvedValue({
     available: false,
     detail: "No trained historical model",

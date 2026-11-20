@@ -3,11 +3,12 @@ data:
   raw_dir: data/raw
   processed_dir: data/processed
   years: [2023, 2024, 2025]
-  demo_locations: [Bahrain, Jeddah, Melbourne]
+  demo_locations: [Sakhir, Jeddah, Melbourne]
   demo_year: 2024
-  request_delay: 0.4
+  # OpenF1 historical quota: at most 30 requests/minute.
+  request_delay: 2.1
   retries: 5
-  gcs_bucket: null
+  gcs_bucket: f1-pitwall-2026-qh719-data
   gcs_prefix: f1-pitwall
 split:
   validation_fraction: 0.2

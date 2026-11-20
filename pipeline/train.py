@@ -79,6 +79,7 @@ def main():
         mlflow.log_params({"dataset_version": manifest["version"], "seed": settings["seed"], "train_races": len(groups["train"]), "validation_races": len(groups["validation"]), "test_races": len(groups["test"]), "features": ",".join(FEATURES)})
         mlflow.log_dict(settings, "config.json")
         mlflow.log_dict(groups, "split.json")
+        mlflow.log_dict(manifest, "dataset-manifest.json")
         for name, estimator in models.items():
             with mlflow.start_run(run_name=name, nested=True):
                 pipeline = make_pipeline(estimator)
@@ -110,6 +111,10 @@ def main():
         mlflow.log_artifact(str(output / "evaluation.png"))
         mlflow.sklearn.log_model(pipeline, name="deployment", input_example=train[FEATURES].head(2))
         sample = test.assign(predicted=predicted).iloc[::max(1,len(test)//300)].head(300)
+        test_results = test.assign(predicted=predicted)
+        per_race = [{"session_key": int(key), "circuit": group.circuit.iloc[0], "laps": len(group), **scores(group.lap_duration, group.predicted)}
+                    for key, group in test_results.groupby("session_key", sort=False)]
+        mlflow.log_dict({"races": per_race}, "held-out-race-metrics.json")
         support = {col: sorted(train[col].dropna().unique().tolist()) for col in CATEGORICAL}
         combinations = train[CATEGORICAL].drop_duplicates().to_dict(orient="records")
         info = {"available": True, "version": version, "dataset_version": manifest["version"], "model": selected,
@@ -119,6 +124,13 @@ def main():
                 "ranges": {col: [float(train[col].min()), float(train[col].max())] for col in NUMERIC},
                 "evaluation": sample[["session_key", "lap_duration", "predicted"]].to_dict(orient="records"),
                 "mlflow_run_id": parent.info.run_id, "limitations": "Observational race pace estimates, not causal tyre simulations. No fuel, traffic, damage, or setup features. Chronological unseen circuits/drivers may reduce test quality."}
+        info["test_by_race"] = per_race
+        info["dataset_uri"] = f"gs://{settings['data']['gcs_bucket']}/{settings['data']['gcs_prefix']}/processed/{manifest['version']}" if settings["data"].get("gcs_bucket") else None
+        example_rows = train[(train.circuit == "Sakhir") & (train.driver == "VER")]
+        if example_rows.empty:
+            example_rows = train
+        example = example_rows.loc[(example_rows.race_lap - 30).abs().sort_values().index[0], FEATURES].to_dict()
+        info["example_input"] = example
         artifact = output / f"model-{version}.joblib"
         joblib.dump({"pipeline": pipeline, "info": info}, artifact)
         # Immutable versioned model first, then atomic pointer: serving never pairs different model/info versions.
