@@ -1,0 +1,16 @@
+**/.git
+**/.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest_cache
+**/.test-tmp
+**/.env
+**/.env.*
+**/*credentials*.json
+**/*service-account*.json
+frontend
+mlruns
+mlflow.db
+data/raw
+*.log

@@ -1,0 +1,15 @@
+fastapi==0.121.2
+uvicorn[standard]==0.38.0
+pydantic==2.12.4
+pandas==2.3.3
+numpy==2.3.5
+scikit-learn==1.7.2
+joblib==1.5.2
+PyYAML==6.0.3
+httpx==0.28.1
+mlflow==3.6.0
+google-cloud-storage==3.6.0
+matplotlib==3.10.7
+pytest==9.0.1
+python-dotenv==1.2.1
+SQLAlchemy==2.0.44
