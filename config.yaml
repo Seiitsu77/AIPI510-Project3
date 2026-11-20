@@ -1,0 +1,31 @@
+data:
+  base_url: https://api.openf1.org/v1
+  raw_dir: data/raw
+  processed_dir: data/processed
+  years: [2023, 2024, 2025]
+  demo_locations: [Sakhir, Jeddah, Melbourne]
+  demo_year: 2024
+  # OpenF1 historical quota: at most 30 requests/minute.
+  request_delay: 2.1
+  retries: 5
+  gcs_bucket: f1-pitwall-2026-qh719-data
+  gcs_prefix: f1-pitwall
+split:
+  validation_fraction: 0.2
+  test_fraction: 0.2
+seed: 42
+model:
+  artifact_dir: artifacts
+  experiment: F1-PitWall
+  selection_metric: mae
+  hyperparameters:
+    max_iter: 200
+    learning_rate: 0.07
+    max_leaf_nodes: 15
+    l2_regularization: 2.0
+    early_stopping: false
+evaluation:
+  minimum_lap_seconds: 45
+  maximum_lap_seconds: 200
+  minimum_races: 5
+  exclude_wet: true

@@ -1,0 +1,17 @@
+.gcloudignore
+.git
+.venv
+frontend
+.test-tmp
+.pytest_cache
+**/__pycache__
+.env
+.env.*
+**/.env
+**/.env.*
+**/*credentials*.json
+**/*service-account*.json
+data/raw
+mlruns
+mlflow.db
+*.log

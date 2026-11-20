@@ -1,0 +1,61 @@
+{
+  "verified_at": "2026-11-20T20:48:25.150473+00:00",
+  "project_id": "f1-pitwall-2026-qh719",
+  "default_project_unchanged": "project-4ea00490-f490-4348-86b",
+  "backend_url": "https://f1-pitwall-api-649091037888.us-central1.run.app",
+  "frontend_temporary_url": "https://brisk-lagoon-o8ed8dn.tmp.now",
+  "revision": "f1-pitwall-api-00003-6kw",
+  "checks": {
+    "backend_health": 200,
+    "backend_docs": 200,
+    "backend_openapi": 200,
+    "frontend_race_control": 200,
+    "frontend_pace_lab": 200,
+    "configured_cors_preflight": 200,
+    "unconfigured_cors_preflight": 400,
+    "public_predict_invalid_input": 422,
+    "historical_race_count": 70,
+    "model_ready": true,
+    "public_predict": 200,
+    "single_batch_consistent": true,
+    "python_tests_local_and_container": 37,
+    "frontend_tests_local": 7,
+    "frontend_typecheck_production_build_static_export": "passed",
+    "backend_docker_build": "SUCCESS",
+    "docker_compose": "not run; local Docker absent",
+    "browser_visual_qa": "three real Race Control sessions; live Pace Lab prediction/curves/reference/metrics; 390px responsive layout"
+  },
+  "model": {
+    "version": "e08c75d96518",
+    "dataset_version": "3607cb9ef2c1a44c",
+    "algorithm": "linear_regression",
+    "test_metrics": {
+      "mae": 1.718158829700287,
+      "rmse": 2.1824846063173524
+    },
+    "mlflow_run_id": "ba7dd85da4324047857ffd46093ad68a"
+  },
+  "prediction": {
+    "input": {
+      "circuit": "Sakhir",
+      "driver": "VER",
+      "team": "Red Bull Racing",
+      "compound": "SOFT",
+      "tyre_age": 15.0,
+      "race_lap": 30,
+      "track_temperature": 29.9,
+      "rainfall": 0.0
+    },
+    "output": {
+      "lap_duration": 97.10094251561898,
+      "model_version": "e08c75d96518",
+      "dataset_version": "3607cb9ef2c1a44c"
+    },
+    "batch_consistent": true,
+    "historical_reference_laps": 71
+  },
+  "images": {
+    "api": "sha256:5ceba66f97355f5881eac4b47b1010fe7a33770dbf805d6ffb8529576439ca7d",
+    "frontend_previous_container_verification": "sha256:34d157ed92626dde5ff309337a33c9bd6f44be0bc76c304a0351ff1d451e81d2"
+  }
+}
