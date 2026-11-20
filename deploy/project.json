@@ -1,0 +1,20 @@
+{
+  "project_id": "f1-pitwall-2026-qh719",
+  "project_number": "649091037888",
+  "organization_id": "742095419661",
+  "billing_enabled": true,
+  "billing_approval": "granted_by_user_for_scoped_f1_resources",
+  "region": "us-central1",
+  "bucket": "f1-pitwall-2026-qh719-data",
+  "artifact_repository": "f1-pitwall",
+  "cloud_run_service": "f1-pitwall-api",
+  "service_account": "f1-pitwall-runtime",
+  "protected_default_project": "project-4ea00490-f490-4348-86b",
+  "build_service_account": "f1-pitwall-build",
+  "backend_build_id": "ecc7d64f-a342-4d7c-b38d-82c10ec66f30",
+  "backend_url": "https://f1-pitwall-api-649091037888.us-central1.run.app",
+  "frontend_temporary_url": "https://rushing-amber-691toc5.tmp.now",
+  "frontend_expires_at": "2026-11-20T06:09:52.920000+00:00",
+  "frontend_build_id": "2a29b919-9473-48ba-a94e-6207c2b6bff8",
+  "api_revision": "f1-pitwall-api-00002-qkl"
+}
