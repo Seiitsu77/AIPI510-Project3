@@ -1031,7 +1031,17 @@ export default function PitWall({
                                     }}
                                     aria-label={`${d.name_acronym} select lap ${i + 1}`}
                                     title={`Lap ${i + 1}`}
-                                    onClick={() => changeLap(i + 1)}
+                                    onClick={() => {
+                                      changeLap(i + 1);
+                                      setSelected((current) =>
+                                        [
+                                          d.driver_number,
+                                          ...current.filter(
+                                            (n) => n !== d.driver_number,
+                                          ),
+                                        ].slice(0, 3),
+                                      );
+                                    }}
                                   />
                                 ))}
                               </div>
@@ -1044,6 +1054,9 @@ export default function PitWall({
                         <span className="push-right">
                           Click any segment to select a lap
                         </span>
+                        <Link href="/pace-lab">
+                          Explore selected driver in Stint Scenario Lab →
+                        </Link>
                       </div>
                     </section>
                   </div>
@@ -1067,6 +1080,9 @@ export default function PitWall({
             <PaceLab
               model={model}
               replay={data}
+              selectedDriver={selected[0]}
+              selectedLap={lap}
+              loading={loading || source === "loading"}
               onRefresh={async () => setModel(await getModel())}
             />
           )}
