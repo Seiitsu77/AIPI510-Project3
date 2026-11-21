@@ -1044,6 +1044,9 @@ export default function PitWall({
                         <span className="push-right">
                           Click any segment to select a lap
                         </span>
+                        <Link href="/pace-lab">
+                          Explore selected driver in Stint Scenario Lab →
+                        </Link>
                       </div>
                     </section>
                   </div>
@@ -1067,6 +1070,9 @@ export default function PitWall({
             <PaceLab
               model={model}
               replay={data}
+              selectedDriver={selected[0]}
+              selectedLap={lap}
+              loading={loading || source === "loading"}
               onRefresh={async () => setModel(await getModel())}
             />
           )}

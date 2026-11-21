@@ -2371,3 +2371,55 @@ footer > span:first-child {
     scroll-behavior: auto !important;
   }
 }
+
+.scenario-panel {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.scenario-panel p {
+  color: #a9b5c5;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 14px 0;
+}
+.scenario-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.scenario-history {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.scenario-history > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  background: #111a27;
+  border: 1px solid #283547;
+  border-radius: 8px;
+}
+.scenario-history small {
+  color: #a9b5c5;
+}
+.scenario-chart {
+  margin-top: 20px;
+}
+.scenario-table {
+  overflow-x: auto;
+}
+.scenario-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.scenario-table th,
+.scenario-table td {
+  padding: 10px;
+  border-bottom: 1px solid #283547;
+}
