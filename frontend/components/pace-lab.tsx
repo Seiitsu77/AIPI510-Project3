@@ -21,6 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
+import StintScenario from "./stint-scenario";
 import {
   estimate,
   estimateBatch,
@@ -49,7 +50,13 @@ export default function PaceLab({
   model,
   replay,
   onRefresh,
+  selectedDriver,
+  selectedLap,
+  loading = false,
 }: {
+  loading?: boolean;
+  selectedLap?: number;
+  selectedDriver?: number;
   model: ModelInfo;
   replay: Replay | null;
   onRefresh: () => Promise<void>;
@@ -253,7 +260,14 @@ export default function PaceLab({
   );
   return (
     <div className="lab-workspace">
-      {!model.available && (
+      <StintScenario
+        model={model}
+        replay={replay}
+        selectedDriver={selectedDriver}
+        selectedLap={selectedLap}
+        loading={loading}
+      />
+      {!model.available && !loading && (
         <div className="model-warning">
           <CircleAlert size={20} />
           <div>
