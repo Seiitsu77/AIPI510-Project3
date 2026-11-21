@@ -3,7 +3,7 @@
 ## Verified project and current approval boundary
 
 F1 PitWall project: **f1-pitwall-2026-qh719** (number **649091037888**), organization **742095419661**.
-Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The API is deployed at https://f1-pitwall-api-649091037888.us-central1.run.app. The verified temporary Vercel frontend has expired.
+Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The API is deployed at https://f1-pitwall-api-649091037888.us-central1.run.app; a temporary Vercel frontend is available at https://brisk-lagoon-o8ed8dn.tmp.now.
 
 The existing default project `project-4ea00490-f490-4348-86b` belongs to Anime Compass. Do not deploy there, change its IAM, change its resources, or change the default gcloud project. Every command below names the dedicated project. Verify its ID and number immediately before each deployment operation with `deploy/verify-project.ps1`.
 
@@ -94,7 +94,7 @@ Verify frontend HTTP 200, then in a working browser select all three historical 
 - Selected Linear Regression model `e08c75d96518`: held-out MAE 1.718 s / RMSE 2.182 s. Validation selected the estimator; 13 later test races were held out. Full metrics/splits are in `docs/evidence/model-evaluation.json`.
 - Current backend Cloud Build: `c8061331-bfb9-4385-90b1-9700395a8826`, successful with 37 Python tests. Image digest: `sha256:5ceba66f97355f5881eac4b47b1010fe7a33770dbf805d6ffb8529576439ca7d`.
 - The frontend is a static-only Next.js export: no raw/processed datasets, fitted models, MLflow database or credentials are uploaded to Vercel. Audited payload: 29 generated HTML/JS/CSS/page files, approximately 1.25 MB. It calls the existing public API for observed/model responses.
-- The first temporary preview expired after one hour. For a persistent deployment, sign into Vercel, deploy the frontend and configure its exact final origin in API CORS.
+- Temporary preview: https://brisk-lagoon-o8ed8dn.tmp.now. It expires one hour after creation unless claimed. Claim credentials are intentionally excluded from Git. For permanent ownership, sign into Vercel or claim the preview, then configure its exact final origin in API CORS.
 - Cloud Run revision `f1-pitwall-api-00003-6kw` serves the actual dataset and model; public single/batch predictions and all three focus replays passed. Browser checks confirmed the live Pace Lab estimate, curves, historical references and held-out metrics at desktop/mobile sizes. See `docs/evidence/public-api-verification.json` and `deploy/verification.json`.
 - Local Docker/compose remain unavailable; container builds/tests are verified via Cloud Build.
 

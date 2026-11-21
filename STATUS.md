@@ -18,15 +18,16 @@
 
 ## Verification and isolation
 
-- The suite contains 37 Python and 12 frontend tests. The last backend Cloud Build passed all 37 Python tests. PR #2 added the Stint Scenario Lab and regression coverage for the flagged-lap toggle and missing lap gaps.
+- 37 Python tests and 7 frontend tests pass locally; the backend Cloud Build also passed all 37 Python tests. Frontend type checking, production build and static export pass.
 - Three real Race Control sessions were exercised in the browser. Live Pace Lab prediction, supported compound curves, held-out diagnostics and 71 matching historical reference laps were verified.
 - Public API evidence: `docs/evidence/public-api-verification.json`. Data/model/cloud evidence: `docs/evidence/`. Build/release metadata: `deploy/project.json` and `deploy/verification.json`.
 - Only project `f1-pitwall-2026-qh719` / `649091037888` was used. The original default project remains `project-4ea00490-f490-4348-86b`; Anime Compass resources were not modified.
-- The two teammate contributions are [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1) and [PR #2](https://github.com/Seiitsu77/AIPI510-Project3/pull/2). PR #2 was merged into `feat/f1-pitwall-platform`, the branch under review in PR #1.
+- Work is reviewed through PR #1 on `feat/f1-pitwall-platform`. `main` intentionally remains empty until review/merge; the PR is not automatically merged.
 
 ## Remaining handoff items
 
-- The verified temporary Vercel preview expired. A persistent frontend deployment requires an authenticated Vercel account and its production origin in API CORS.
-- The GitHub Actions Docker job checks training and MLflow with contract fixtures and the clean-clone Compose stack on Linux. A data-loaded Compose run on this machine still requires a local Docker engine.
+- Claim the temporary [Vercel preview](https://brisk-lagoon-o8ed8dn.tmp.now) before its one-hour expiry, or deploy from an authenticated Vercel account. The private claim link is supplied in chat and excluded from Git. Configure the final frontend origin in API CORS if it changes.
+- Local Docker Compose execution is unverified because this machine has no Docker engine; component container builds/tests were verified through Cloud Build.
+- Each teammate still needs to submit their own real contribution PR, as required by the project brief. No contribution history is fabricated.
 
 Evaluation applies to filtered historical dry/clean laps. Missing fuel, traffic, setup and damage inputs limit generalization; estimates are observational and do not establish causal tyre effects.
