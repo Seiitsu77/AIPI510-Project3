@@ -119,21 +119,32 @@ export default function StintScenario({
       after.lap_end == null
     )
       return [];
-    return replay.laps
-      .filter(
-        (l) =>
-          l.driver_number === driver &&
-          l.race_lap >= before.lap_start! &&
-          l.race_lap <= after.lap_end!,
-      )
-      .sort((a, b) => a.race_lap - b.race_lap)
-      .map((l) => ({
-        lap: l.race_lap,
-        observed: l.eligible ? l.lap_duration : null,
-        flagged: !l.eligible ? l.lap_duration : null,
-        reason: l.exclusions.join(", ") || "eligible",
-        compound: l.compound || "unknown",
-      }));
+    const byLap = new Map(
+      replay.laps
+        .filter(
+          (l) =>
+            l.driver_number === driver &&
+            l.race_lap >= before.lap_start! &&
+            l.race_lap <= after.lap_end!,
+        )
+        .map((l) => [l.race_lap, l]),
+    );
+    return Array.from(
+      { length: after.lap_end - before.lap_start + 1 },
+      (_, i) => {
+        const lap = before.lap_start! + i;
+        const l = byLap.get(lap);
+        return {
+          lap,
+          observed: l?.eligible ? l.lap_duration : null,
+          flagged: l && !l.eligible ? l.lap_duration : null,
+          reason: l
+            ? l.exclusions.join(", ") || "eligible"
+            : "Missing source lap",
+          compound: l?.compound || "unknown",
+        };
+      },
+    );
   }, [replay, before, after, driver]);
   const observedValues = observedLaps
     .flatMap((row) => [row.observed, ...(showFlagged ? [row.flagged] : [])])
@@ -424,6 +435,9 @@ export default function StintScenario({
                       <CartesianGrid stroke="#26303f" strokeDasharray="3 5" />
                       <XAxis
                         dataKey="lap"
+                        type="number"
+                        domain={[before.lap_start!, after.lap_end!]}
+                        allowDecimals={false}
                         tick={{ fill: "#8190a5", fontSize: 11 }}
                         label={{
                           value: "Race lap",
@@ -466,15 +480,17 @@ export default function StintScenario({
                         connectNulls={false}
                         isAnimationActive={false}
                       />
-                      <Line
-                        name="Flagged lap"
-                        dataKey="flagged"
-                        stroke="#e8bf60"
-                        strokeWidth={0}
-                        dot={{ r: 4 }}
-                        connectNulls={false}
-                        isAnimationActive={false}
-                      />
+                      {showFlagged && (
+                        <Line
+                          name="Flagged lap"
+                          dataKey="flagged"
+                          stroke="#e8bf60"
+                          strokeWidth={0}
+                          dot={{ r: 4 }}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
