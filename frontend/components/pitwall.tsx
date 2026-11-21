@@ -1031,7 +1031,17 @@ export default function PitWall({
                                     }}
                                     aria-label={`${d.name_acronym} select lap ${i + 1}`}
                                     title={`Lap ${i + 1}`}
-                                    onClick={() => changeLap(i + 1)}
+                                    onClick={() => {
+                                      changeLap(i + 1);
+                                      setSelected((current) =>
+                                        [
+                                          d.driver_number,
+                                          ...current.filter(
+                                            (n) => n !== d.driver_number,
+                                          ),
+                                        ].slice(0, 3),
+                                      );
+                                    }}
                                   />
                                 ))}
                               </div>

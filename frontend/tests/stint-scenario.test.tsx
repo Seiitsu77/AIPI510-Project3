@@ -45,6 +45,15 @@ describe("stint scenario", () => {
         selectedDriver={driver.driver_number}
       />,
     );
+    expect(
+      screen.getByRole("heading", { name: "Lap times around the transition" }),
+    ).toBeInTheDocument();
+    const flagged = screen.getByRole("checkbox", {
+      name: /Include flagged laps/,
+    });
+    expect(flagged).not.toBeChecked();
+    fireEvent.click(flagged);
+    expect(flagged).toBeChecked();
     fireEvent.change(
       screen.getByRole("spinbutton", { name: "Scenario length" }),
       { target: { value: "3" } },

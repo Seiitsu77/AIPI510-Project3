@@ -5,6 +5,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,6 +47,7 @@ export default function StintScenario({
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [showFlagged, setShowFlagged] = useState(false);
   const sequence = useRef(0);
   useEffect(() => {
     setDriver(
@@ -108,6 +110,40 @@ export default function StintScenario({
   };
   const pre = historical(before),
     post = historical(after);
+  const observedLaps = useMemo(() => {
+    if (
+      !replay ||
+      !before ||
+      !after ||
+      before.lap_start == null ||
+      after.lap_end == null
+    )
+      return [];
+    return replay.laps
+      .filter(
+        (l) =>
+          l.driver_number === driver &&
+          l.race_lap >= before.lap_start! &&
+          l.race_lap <= after.lap_end!,
+      )
+      .sort((a, b) => a.race_lap - b.race_lap)
+      .map((l) => ({
+        lap: l.race_lap,
+        observed: l.eligible ? l.lap_duration : null,
+        flagged: !l.eligible ? l.lap_duration : null,
+        reason: l.exclusions.join(", ") || "eligible",
+        compound: l.compound || "unknown",
+      }));
+  }, [replay, before, after, driver]);
+  const observedValues = observedLaps
+    .flatMap((row) => [row.observed, ...(showFlagged ? [row.flagged] : [])])
+    .filter(
+      (value): value is number => value != null && Number.isFinite(value),
+    );
+  const observedDomain: [number | string, number | string] =
+    observedValues.length
+      ? [Math.min(...observedValues) - 1, Math.max(...observedValues) + 1]
+      : ["auto", "auto"];
   const supported = TYRES.filter((compound) =>
     model.combinations?.some(
       (c) =>
@@ -255,11 +291,21 @@ export default function StintScenario({
         </div>
         <span className="panel-tag">DRY LAPS ONLY</span>
       </div>
-      <p>
-        Review an observed stint transition, then compare supported tyre
-        scenarios over the same future laps. Stint boundaries indicate an
-        inferred pit transition, not a measured pit entry.
+      <p className="scenario-intro">
+        Review the recorded tyre change, then explore how the pace model
+        estimates the next laps under different dry-tyre assumptions.
       </p>
+      <div className="scenario-steps" aria-label="Analysis workflow">
+        <span>
+          <b>01</b> Select transition
+        </span>
+        <span>
+          <b>02</b> Review observed laps
+        </span>
+        <span>
+          <b>03</b> Compare model scenarios
+        </span>
+      </div>
       {loading && !replay ? (
         <p>Connecting to the historical replay and model…</p>
       ) : !replay || replay.race.is_fixture ? (
@@ -305,6 +351,17 @@ export default function StintScenario({
           </div>
           {before && after ? (
             <>
+              <div className="scenario-context">
+                <span>HISTORICAL SESSION</span>
+                <strong>
+                  {replay.race.year} · {replay.race.location} ·{" "}
+                  {person?.name_acronym}
+                </strong>
+                <small>
+                  Stint boundary inferred from source data, not a measured pit
+                  entry.
+                </small>
+              </div>
               <div className="scenario-history">
                 <div>
                   <span className="eyebrow">OBSERVED BEFORE</span>
@@ -333,6 +390,109 @@ export default function StintScenario({
                 and other conditions may differ. Same compound can mean a
                 different tyre set.
               </p>
+              <div className="scenario-observed">
+                <div className="scenario-section-heading">
+                  <div>
+                    <span className="eyebrow">ACTUAL RACE DATA</span>
+                    <h3>Lap times around the transition</h3>
+                  </div>
+                  <span className="scenario-badge">OBSERVED</span>
+                </div>
+                <p>
+                  Blue points are eligible historical laps. Gaps indicate
+                  flagged or missing laps. The vertical line marks the inferred
+                  start of the next stint.
+                </p>
+                <label className="scenario-toggle">
+                  <input
+                    type="checkbox"
+                    checked={showFlagged}
+                    onChange={(e) => setShowFlagged(e.target.checked)}
+                  />{" "}
+                  Include flagged laps{" "}
+                  <small>· amber points may include pit or caution laps</small>
+                </label>
+                <div
+                  aria-label="Observed historical lap time chart"
+                  className="scenario-chart"
+                >
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart
+                      data={observedLaps}
+                      margin={{ left: 10, right: 18, top: 16, bottom: 10 }}
+                    >
+                      <CartesianGrid stroke="#26303f" strokeDasharray="3 5" />
+                      <XAxis
+                        dataKey="lap"
+                        tick={{ fill: "#8190a5", fontSize: 11 }}
+                        label={{
+                          value: "Race lap",
+                          position: "insideBottom",
+                          offset: -5,
+                          fill: "#8190a5",
+                        }}
+                      />
+                      <YAxis
+                        domain={observedDomain}
+                        width={70}
+                        tick={{ fill: "#8190a5", fontSize: 11 }}
+                        tickFormatter={(v) => lapTime(Number(v)).slice(0, -1)}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          const row = payload?.[0]?.payload;
+                          return active && row ? (
+                            <div className="chart-tooltip">
+                              <strong>
+                                LAP {row.lap} · {row.compound}
+                              </strong>
+                              <div>{lapTime(row.observed ?? row.flagged)}</div>
+                              <small>{row.reason}</small>
+                            </div>
+                          ) : null;
+                        }}
+                      />
+                      <ReferenceLine
+                        x={after.lap_start ?? undefined}
+                        stroke="#e8bf60"
+                        strokeDasharray="4 4"
+                      />
+                      <Line
+                        name="Eligible lap"
+                        dataKey="observed"
+                        stroke="#8cc8e3"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        name="Flagged lap"
+                        dataKey="flagged"
+                        stroke="#e8bf60"
+                        strokeWidth={0}
+                        dot={{ r: 4 }}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div className="scenario-section-heading scenario-model-heading">
+                <div>
+                  <span className="eyebrow">HYPOTHETICAL · DRY CONDITIONS</span>
+                  <h3>Compare the next stint</h3>
+                </div>
+                <span className="scenario-badge scenario-badge-model">
+                  MODEL ESTIMATE
+                </span>
+              </div>
+              <p>
+                Choose assumptions for the first estimated lap. The same
+                starting tyre age applies to every compound; this does not
+                represent an actual tyre allocation.
+              </p>
               <div className="scenario-controls">
                 <label className="lab-field">
                   Forecast length{" "}
@@ -344,7 +504,10 @@ export default function StintScenario({
                     value={laps}
                     onChange={(e) => setLaps(Number(e.target.value))}
                   />
-                  <small>1–20 laps, beginning at race lap {start}; transition lap omitted</small>
+                  <small>
+                    1–20 laps, beginning at race lap {start}; transition lap
+                    omitted
+                  </small>
                 </label>
                 <label className="lab-field">
                   Starting tyre age{" "}
@@ -388,10 +551,29 @@ export default function StintScenario({
                   </small>
                 </label>
               </div>
+              <div
+                className="scenario-support"
+                aria-label="Model compound availability"
+              >
+                {TYRES.map((c) => (
+                  <span
+                    key={c}
+                    className={
+                      supported.includes(c) ? "supported" : "unsupported"
+                    }
+                  >
+                    <i style={{ background: compounds[c] }} />
+                    {c}
+                    <small>
+                      {supported.includes(c) ? "Available" : "Not supported"}
+                    </small>
+                  </span>
+                ))}
+              </div>
               <p>
-                Supported: {supported.join(", ") || "none"}. Unsupported
-                compounds are omitted. Temperature and the user adjustment stay
-                constant; race lap and tyre age advance together.
+                Temperature and user adjustment stay constant; race lap and tyre
+                age advance together. Only supported combinations can be
+                estimated.
               </p>
               <Button disabled={!model.available || pending} onClick={run}>
                 {pending ? "Estimating scenarios…" : "Compare stint scenarios"}
@@ -403,6 +585,18 @@ export default function StintScenario({
               )}
               {result && (
                 <div aria-live="polite">
+                  <div className="scenario-section-heading scenario-result-heading">
+                    <div>
+                      <span className="eyebrow">
+                        MODEL OUTPUT · L{result.rows[0].lap}–
+                        {result.rows[result.rows.length - 1].lap}
+                      </span>
+                      <h3>Estimated lap pace</h3>
+                    </div>
+                    <span className="scenario-badge scenario-badge-model">
+                      NOT OBSERVED
+                    </span>
+                  </div>
                   <div
                     className="scenario-chart"
                     aria-label="Estimated stint scenario chart"
