@@ -3,7 +3,7 @@
 A race engineering dashboard for **real historical Formula 1 records**, driver/tyre comparisons, and reproducible lap-pace estimation. Next.js/TypeScript serves Race Control and Pace Lab; FastAPI serves cached OpenF1 data and the fitted scikit-learn pipeline.
 
 - API: [Cloud Run documentation](https://f1-pitwall-api-649091037888.us-central1.run.app/docs).
-- Frontend: [Vercel preview](https://brisk-lagoon-o8ed8dn.tmp.now). Anonymous previews expire after one hour unless claimed; the private claim link is supplied in chat, never committed.
+- Frontend: run locally with the API URL above, or follow the [Vercel deployment instructions](docs/DEPLOYMENT.md#deploy-nextjs-to-vercel). The first anonymous preview was verified and has expired.
 - Review: [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1), branch `feat/f1-pitwall-platform`. `main` intentionally stays empty until review/merge.
 
 ## Real data and model results
@@ -141,7 +141,7 @@ docker build --target base -t f1-pitwall-pipeline .
 docker run --rm --env-file .env -v "${PWD}/data:/app/data" -v "${PWD}/artifacts:/app/artifacts" f1-pitwall-pipeline python -m pipeline.train
 ```
 
-The existing Cloud Build records confirm earlier component image builds and tests; **a local Compose run is still unverified**. A clean clone contains no historical data or fitted model: Compose mounts `data/processed` and `artifacts` from the host, so an empty clone can start the API without a ready model. Before testing the full workflow, use existing authorized GCS credentials to restore the dataset and replay files and train a local model (or use trusted, previously prepared project artifacts):
+GitHub Actions builds and starts both services through Compose on Linux and checks the API and both frontend routes from a clean clone. A separate step runs the training and MLflow contract inside Docker. These checks use no cloud credentials. To test the full workflow with historical data and a fitted model, restore the dataset and replay files with authorized GCS credentials, then train a local model (or use trusted, previously prepared project artifacts):
 
 ```powershell
 # In the activated Python environment, with approved GCS access:
@@ -172,11 +172,11 @@ npm run export:static
 npx vercel deploy out --temporary --yes
 ```
 
-Use `python -m pytest`, matching CI and Docker, so repository packages are on the import path. The workspace temp directory avoids this machine's legacy Windows temp-folder ACL issue. Tests cover temporal joins, source 404 semantics, sparse position events, red flags, ambiguity, recorded real-response contracts, serialized inference, historical reference, cloud isolation, model orchestration and frontend interactions. Earlier recorded verification: 37 Python tests and 7 frontend tests passed; PR #2 adds additional frontend tests. CI runs on PR #1; evidence for deployment checks is under `docs/evidence/`.
+Use `python -m pytest`, matching CI and Docker, so repository packages are on the import path. The workspace temp directory avoids this machine's legacy Windows temp-folder ACL issue. Tests cover temporal joins, source 404 semantics, sparse position events, red flags, ambiguity, recorded real-response contracts, serialized inference, historical reference, cloud isolation, model orchestration and frontend interactions. The suite contains 37 Python tests and 12 frontend tests, including the historical stint chart regressions from PR #2. CI and review run on [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1). Deployment evidence is under `docs/evidence/`.
 
 ## Collaboration, ethics and limitations
 
-Each teammate must submit at least one real PR; see [CONTRIBUTING.md](CONTRIBUTING.md). No PR/authorship history is fabricated and PR #1 is not automatically merged. [STATUS.md](STATUS.md) tracks remaining work.
+The two teammates contributed through [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1) and [PR #2](https://github.com/Seiitsu77/AIPI510-Project3/pull/2). PR #2 has been merged into the feature branch reviewed in PR #1. See [CONTRIBUTING.md](CONTRIBUTING.md) and [STATUS.md](STATUS.md).
 
 OpenF1 is unofficial; this academic project is unaffiliated with Formula 1, FIA or teams. Respect source access/rate policies and attribution. Models are observational, not causal or physical tyre simulations. Fuel, traffic, damage, setup and regulatory changes are omitted. Errors apply to the filtered evaluation population and can be optimistic relative to all racing laps. Some source sequences are incomplete; ambiguous tyre assignments are excluded. Do not use the demonstration for safety-critical race operations or promises about race outcomes.
 
