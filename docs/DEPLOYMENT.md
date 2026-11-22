@@ -3,7 +3,7 @@
 ## Verified project and current approval boundary
 
 F1 PitWall project: **f1-pitwall-2026-qh719** (number **649091037888**), organization **742095419661**.
-Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The API is deployed at https://f1-pitwall-api-649091037888.us-central1.run.app. The verified temporary Vercel frontend has expired.
+Project creation succeeded after `resourcemanager.projects.create` was verified on the organization. Billing was explicitly approved by the user and linked to the existing account ending **37043C**. The dedicated private GCS bucket, image repository, and build/runtime service accounts are created. Both Docker builds and their tests succeeded. The production endpoints are the [Vercel frontend](https://f1-pitwall-anime-recommender.vercel.app/) and the [Cloud Run API](https://f1-pitwall-api-649091037888.us-central1.run.app/docs). The complete project is on `main` following the merge of [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1), which includes PR #2 and PR #3.
 
 The existing default project `project-4ea00490-f490-4348-86b` belongs to Anime Compass. Do not deploy there, change its IAM, change its resources, or change the default gcloud project. Every command below names the dedicated project. Verify its ID and number immediately before each deployment operation with `deploy/verify-project.ps1`.
 
@@ -63,11 +63,11 @@ Raw and processed objects use separate versioned prefixes. The processed manifes
 gcloud builds submit . --config=deploy/cloudbuild.yaml --project=f1-pitwall-2026-qh719 --region=us-central1 --substitutions=_REGION=us-central1 --service-account=projects/f1-pitwall-2026-qh719/serviceAccounts/f1-pitwall-build@f1-pitwall-2026-qh719.iam.gserviceaccount.com --gcs-source-staging-dir=gs://f1-pitwall-2026-qh719-data/build-source
 ```
 
-Copy the successful build ID from the output. Verify the project again, then deploy the exact image. Replace `FRONTEND_ORIGIN` with the exact HTTPS origin (no trailing slash) of the Vercel deployment. The service below is an unauthenticated demo API; do not include private datasets.
+Copy the successful build ID from the output. Verify the project again, then deploy the exact image. The production origin is `https://f1-pitwall-anime-recommender.vercel.app` without a trailing slash. The service below is an unauthenticated demo API; do not include private datasets.
 
 ```powershell
 . ./deploy/verify-project.ps1
-gcloud run deploy f1-pitwall-api --image=us-central1-docker.pkg.dev/f1-pitwall-2026-qh719/f1-pitwall/api:SUCCESSFUL_BUILD_ID --region=us-central1 --project=f1-pitwall-2026-qh719 --service-account=f1-pitwall-runtime@f1-pitwall-2026-qh719.iam.gserviceaccount.com --allow-unauthenticated --cpu=1 --memory=1Gi --min-instances=0 --max-instances=1 --concurrency=8 --timeout=60 --set-env-vars=CORS_ORIGINS=FRONTEND_ORIGIN
+gcloud run deploy f1-pitwall-api --image=us-central1-docker.pkg.dev/f1-pitwall-2026-qh719/f1-pitwall/api:SUCCESSFUL_BUILD_ID --region=us-central1 --project=f1-pitwall-2026-qh719 --service-account=f1-pitwall-runtime@f1-pitwall-2026-qh719.iam.gserviceaccount.com --allow-unauthenticated --cpu=1 --memory=1Gi --min-instances=0 --max-instances=1 --concurrency=8 --timeout=60 --update-env-vars='^|^CORS_ORIGINS=https://f1-pitwall-anime-recommender.vercel.app,http://localhost:3000'
 gcloud run services describe f1-pitwall-api --region=us-central1 --project=f1-pitwall-2026-qh719 --format='value(status.url)'
 ```
 
@@ -75,17 +75,21 @@ The custom `.gcloudignore` includes processed datasets and model artifacts while
 
 ## Deploy Next.js to Vercel
 
-No Vercel authentication was found during implementation. Create/import a repository using your GitHub account, choose `frontend` as the Vercel root directory and the Next.js preset, and set `NEXT_PUBLIC_API_URL` to the Cloud Run HTTPS origin. This variable is compiled at build time, so changing it requires a new frontend build. Use `npm ci` and `npm run build`.
+The [production site](https://f1-pitwall-anime-recommender.vercel.app/) is deployed. To reproduce the frontend build on Vercel, use `frontend` as the root directory and the Next.js preset. Set `NEXT_PUBLIC_API_URL=https://f1-pitwall-api-649091037888.us-central1.run.app`. This variable is compiled at build time, so changing it requires a new frontend build. Use `npm ci` and `npm run build`.
 
-Set the API `CORS_ORIGINS` to that exact Vercel origin. Preview deployments have distinct origins; add explicitly approved origins as a comma-separated list rather than enabling `*`. Vercel CLI is an alternative after `vercel login`; run it inside `frontend`. Do not claim a deployment until public endpoints pass the following checks.
+The production domain is in the API's `CORS_ORIGINS` allowlist. Add future approved frontend origins to the existing comma-separated list. For an origin-only change, verify the dedicated project and use `gcloud run services update` with `--update-env-vars` on the existing `f1-pitwall-api` service. This deploys a revision from the existing image. Use the Vercel dashboard or authenticated CLI for frontend deployment. Visitors do not need Vercel accounts.
 
 ## Verify public integration
 
 ```powershell
-python scripts/verify_api.py --base-url https://YOUR_CLOUD_RUN_ORIGIN --require-ready
+python scripts/verify_api.py --base-url https://f1-pitwall-api-649091037888.us-central1.run.app --require-ready
+curl.exe -i -X OPTIONS 'https://f1-pitwall-api-649091037888.us-central1.run.app/predict' `
+  -H 'Origin: https://f1-pitwall-anime-recommender.vercel.app' `
+  -H 'Access-Control-Request-Method: POST' `
+  -H 'Access-Control-Request-Headers: content-type'
 ```
 
-Verify frontend HTTP 200, then in a working browser select all three historical races; compare drivers, scrub laps, inspect tyre changes and the chart tooltip, and run Pace Lab. Confirm `/predict` and `/predict/batch` use the public Cloud Run API and show its actual model version. Test both supported and unsupported inputs. Validate CORS using the Vercel Origin header.
+Expect HTTP 200 on the production pages and the exact Vercel origin in `Access-Control-Allow-Origin` on the preflight response. Then select the three historical races in a browser and test driver comparison, lap scrubbing and tyre changes. Run Pace Lab and check that `/predict` and `/predict/batch` return the actual model version.
 
 ## Verified release and remaining execution limits
 
@@ -93,10 +97,10 @@ Verify frontend HTTP 200, then in a working browser select all three historical 
 - Training data was restored from GCS with SHA-256 verification before training. Raw and processed versions, model binary, MLflow database and all experiment artifacts are stored separately in the dedicated bucket; see `docs/evidence/gcs-publication.json`.
 - Selected Linear Regression model `e08c75d96518`: held-out MAE 1.718 s / RMSE 2.182 s. Validation selected the estimator; 13 later test races were held out. Full metrics/splits are in `docs/evidence/model-evaluation.json`.
 - Current backend Cloud Build: `c8061331-bfb9-4385-90b1-9700395a8826`, successful with 37 Python tests. Image digest: `sha256:5ceba66f97355f5881eac4b47b1010fe7a33770dbf805d6ffb8529576439ca7d`.
-- The frontend is a static-only Next.js export: no raw/processed datasets, fitted models, MLflow database or credentials are uploaded to Vercel. Audited payload: 29 generated HTML/JS/CSS/page files, approximately 1.25 MB. It calls the existing public API for observed/model responses.
-- The first temporary preview expired after one hour. For a persistent deployment, sign into Vercel, deploy the frontend and configure its exact final origin in API CORS.
-- Cloud Run revision `f1-pitwall-api-00003-6kw` serves the actual dataset and model; public single/batch predictions and all three focus replays passed. Browser checks confirmed the live Pace Lab estimate, curves, historical references and held-out metrics at desktop/mobile sizes. See `docs/evidence/public-api-verification.json` and `deploy/verification.json`.
-- Local Docker/compose remain unavailable; container builds/tests are verified via Cloud Build.
+- On November 22, 2026, Cloud Run revision `f1-pitwall-api-00004-lt2` added the exact Vercel origin to `CORS_ORIGINS`. The service kept its image digest, runtime service account, existing allowlist entries and other runtime settings. The same image contains dataset `3607cb9ef2c1a44c` and model `e08c75d96518`.
+- Both production pages and API documentation returned HTTP 200 without sign-in. `OPTIONS /predict` returned HTTP 200 with `Access-Control-Allow-Origin: https://f1-pitwall-anime-recommender.vercel.app`. The same origin received HTTP 200 from `GET /races`, `GET /model/info`, `POST /predict`, and `POST /predict/batch`. The localhost origin still passed, and an unlisted origin was rejected.
+- A browser test selected the 2024 Jeddah race and advanced to lap 33 in Race Control. Pace Lab displayed **1:37.101** for the Sakhir/VER example and returned Medium and Hard tyre estimates for a Jeddah stint scenario. The API reported 70 historical races and a ready model. See `docs/evidence/public-api-verification.json` and `deploy/verification.json` for the original model release evidence.
+- GitHub Actions verifies container training and a clean-clone Compose startup on Linux. A Compose run with restored race data and model artifacts on this machine remains unverified.
 
 ## Reproduce the cloud-backed training release
 
@@ -108,5 +112,3 @@ python -m pipeline.gcs --gcloud-auth --model-only
 ```
 
 `--gcloud-auth` uses the existing signed-in CLI account in memory; tokens are not printed or saved. All cloud commands verify `f1-pitwall-2026-qh719` / `649091037888`. ADC remains the normal portable SDK option. Model publication rejects a model/dataset version mismatch. The runtime service account needs no GCS write access because the tested deployment image contains the prepared dataset and selected model.
-
-The temporary frontend uses `npm run export:static`, then `vercel deploy out --temporary --yes`. This avoids the Windows anonymous Next.js builder's symlink requirement without weakening system permissions. After claiming, rebuild only if the API origin changes; update CORS if the frontend origin changes.
