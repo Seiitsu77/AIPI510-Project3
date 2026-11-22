@@ -82,16 +82,29 @@ Race Control supports driver comparison, lap scrubbing/playback, chart ranges, f
 
 ## Reproduce ingestion, audit and training
 
+### Explore three races and open Race Control
+
+On a fresh cache, `--demo` downloads the 2024 Bahrain, Saudi Arabian and Australian races. Use this dataset to inspect the OpenF1 records and replay the races with the [local setup](#local-setup). Three races alone fall below the training minimum.
+
 ```powershell
 python -m pipeline.ingest --demo
-# Or all configured completed 2023–2025 races:
+python -m pipeline.preprocess
+python -m pipeline.quality --session-keys 9472 9480 9488 --output .test-tmp/demo-data-quality.json
+```
+
+### Train and evaluate a model
+
+Run the full ingestion workflow to reproduce the 2023–2025 training dataset. The default `evaluation.minimum_races` in `config.yaml` is **five distinct races with eligible timed laps after filtering**, so those races can be split into training, validation and test groups.
+
+```powershell
 python -m pipeline.ingest --all
 python -m pipeline.preprocess
-python -m pipeline.quality --session-keys 9472 9480 9488
-python -m pipeline.quality --output docs/evidence/all-data-quality.json
+python -m pipeline.quality --output .test-tmp/all-data-quality.json
 python -m pipeline.train
 mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
 ```
+
+For a smaller training run, use `python -m pipeline.ingest --all --session-keys 9472 9480 9488 9496 9673` in place of the full ingestion command, then run the same preprocessing, audit and training steps. These five 2024 races have eligible timed laps under the default filters. Preprocessing uses all complete sessions in the configured raw cache, so use a fresh cache to reproduce just this subset. Results from the subset will differ from the published metrics above.
 
 OpenF1's Bahrain location is **Sakhir**, not Bahrain. Requests reuse connections, respect the configured 2.1-second delay and server `Retry-After`, and reuse validated caches. Exact `404 No results found` responses are recorded as empty source endpoints; other errors remain errors. Global live-session access restrictions may temporarily require an existing authorized `OPENF1_TOKEN` or waiting. No restriction is bypassed.
 

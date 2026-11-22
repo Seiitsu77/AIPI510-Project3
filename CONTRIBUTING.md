@@ -1,17 +1,18 @@
-# Parallel contributions and real pull requests
+# Project contributions
 
-The assignment requires each teammate to submit at least one real PR. This repository intentionally contains no invented authorship or PR history. Initialize/connect the project to the team's actual GitHub repository when ready.
+Both teammates submitted pull requests to the project repository. Their contributions are included in `main`.
 
-Suggested boundaries:
-
-| Contributor | Primary scope | Independent checks |
+| Contributor | Completed contribution | Merged PR |
 | --- | --- | --- |
-| Teammate A | `pipeline/`, data contracts, training and MLflow | pytest; inspect real ingestion manifests and evaluation artifacts |
-| Teammate B | `frontend/`, dashboard, Pace Lab, accessibility | frontend tests, typecheck, production build and browser QA |
-| Shared review | `backend/`, deployment, API contracts, docs | API verification and real end-to-end demonstration |
+| [Seiitsu77](https://github.com/Seiitsu77) | Built the base Race Control and Pace Lab dashboard, the OpenF1 ingestion and preprocessing pipeline, the MLflow training and evaluation workflow, and the FastAPI service on Cloud Run. | [#1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1) |
+| [Cheney0919](https://github.com/Cheney0919) | Added Stint Scenario Lab with historical summaries, dry compound comparisons through the batch API, and Race Control navigation. Fixed the flagged-lap toggle and missing-lap gaps, added regression tests, and clarified the Docker setup. | [#2](https://github.com/Seiitsu77/AIPI510-Project3/pull/2) |
+| [Seiitsu77](https://github.com/Seiitsu77) | Added Docker CI coverage for the training contract and clean-clone Compose startup, with setup and handoff documentation. | [#3](https://github.com/Seiitsu77/AIPI510-Project3/pull/3) |
+| [Seiitsu77](https://github.com/Seiitsu77) | Documented the permanent Vercel demo and verified production replay, prediction and CORS results. | [#4](https://github.com/Seiitsu77/AIPI510-Project3/pull/4) |
 
-Use feature branches and keep real changes reviewable. For example, one PR can validate OpenF1 success-response schemas and ingest the initial sessions; another can complete screenshot QA and refine dashboard interactions. Both teammates should review the API and feature semantics together. Do not create empty or cosmetic PRs solely to fabricate participation.
+PR #2 and PR #3 merged into the feature branch that reached `main` through PR #1. PR #4 merged directly into `main`.
 
-Before each PR, describe the concrete problem, resulting behavior and checks. Include known limits, especially fixture vs observed data and whether deployment was tested. Never commit raw API archives, models, credentials, local `.env`, or generated environments. Share datasets via approved versioned GCS objects after billing is approved.
+## Ongoing contributions
 
-Create a separate F1 PitWall GitHub repository; do not change Anime Compass code, cloud resources or default gcloud configuration. A production deployment requires verification of the dedicated project ID and the user's billing approval.
+Open a feature branch from `main` and describe the behavior change and relevant checks in the PR. Follow the [README](README.md#tests-and-ci) for test commands and identify which records were used when verifying data and model behavior. Keep raw archives, model binaries, credentials, local `.env` files and generated environments outside Git. Share datasets through the approved versioned GCS objects.
+
+Verify the dedicated F1 PitWall project ID before any cloud operation and use the explicit project flag. See the [deployment runbook](docs/DEPLOYMENT.md) for resource scope and approval requirements.
