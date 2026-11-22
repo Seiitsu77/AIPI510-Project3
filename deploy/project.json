@@ -1,0 +1,23 @@
+{
+  "project_id": "f1-pitwall-2026-qh719",
+  "project_number": "649091037888",
+  "organization_id": "742095419661",
+  "billing_enabled": true,
+  "billing_approval": "granted_by_user_for_scoped_f1_resources",
+  "region": "us-central1",
+  "bucket": "f1-pitwall-2026-qh719-data",
+  "artifact_repository": "f1-pitwall",
+  "cloud_run_service": "f1-pitwall-api",
+  "service_account": "f1-pitwall-runtime",
+  "protected_default_project": "project-4ea00490-f490-4348-86b",
+  "build_service_account": "f1-pitwall-build",
+  "backend_build_id": "c8061331-bfb9-4385-90b1-9700395a8826",
+  "backend_url": "https://f1-pitwall-api-649091037888.us-central1.run.app",
+  "frontend_temporary_url": "https://brisk-lagoon-o8ed8dn.tmp.now",
+  "frontend_expires_at": "2026-11-20T21:41:20.252000+00:00",
+  "frontend_build_id": "2a29b919-9473-48ba-a94e-6207c2b6bff8",
+  "api_revision": "f1-pitwall-api-00003-6kw",
+  "backend_image_digest": "sha256:5ceba66f97355f5881eac4b47b1010fe7a33770dbf805d6ffb8529576439ca7d",
+  "model_version": "e08c75d96518",
+  "dataset_version": "3607cb9ef2c1a44c"
+}
