@@ -2,9 +2,14 @@
 
 A race engineering dashboard for **real historical Formula 1 records**, driver/tyre comparisons, and reproducible lap-pace estimation. Next.js/TypeScript serves Race Control and Pace Lab; FastAPI serves cached OpenF1 data and the fitted scikit-learn pipeline.
 
-- API: [Cloud Run documentation](https://f1-pitwall-api-649091037888.us-central1.run.app/docs).
-- Frontend: run locally with the API URL above, or follow the [Vercel deployment instructions](docs/DEPLOYMENT.md#deploy-nextjs-to-vercel). The first anonymous preview was verified and has expired.
-- Review: [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1), branch `feat/f1-pitwall-platform`. `main` intentionally stays empty until review/merge.
+## Live Demo
+
+- Frontend: [f1-pitwall-anime-recommender.vercel.app](https://f1-pitwall-anime-recommender.vercel.app/)
+- API: [f1-pitwall-api-649091037888.us-central1.run.app](https://f1-pitwall-api-649091037888.us-central1.run.app)
+- API Documentation: [Swagger UI](https://f1-pitwall-api-649091037888.us-central1.run.app/docs)
+- GitHub: [Seiitsu77/AIPI510-Project3](https://github.com/Seiitsu77/AIPI510-Project3)
+
+The demo is public and requires no Vercel sign-in. The production frontend loads 70 historical races and calls the Cloud Run model for single and batch estimates. On November 22, 2026, a browser test opened the 2024 Jeddah replay, ran a stint comparison, and returned the Sakhir/VER example estimate of **1:37.101**. See the [production verification steps](docs/DEPLOYMENT.md#verify-public-integration).
 
 ## Real data and model results
 
@@ -167,16 +172,15 @@ npm test
 npm run typecheck
 npm run build
 npm audit
-# Static Vercel preview fallback:
+# Optional static export:
 npm run export:static
-npx vercel deploy out --temporary --yes
 ```
 
-Use `python -m pytest`, matching CI and Docker, so repository packages are on the import path. The workspace temp directory avoids this machine's legacy Windows temp-folder ACL issue. Tests cover temporal joins, source 404 semantics, sparse position events, red flags, ambiguity, recorded real-response contracts, serialized inference, historical reference, cloud isolation, model orchestration and frontend interactions. The suite contains 37 Python tests and 12 frontend tests, including the historical stint chart regressions from PR #2. CI and review run on [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1). Deployment evidence is under `docs/evidence/`.
+Use `python -m pytest`, matching CI and Docker, so repository packages are on the import path. The workspace temp directory avoids this machine's legacy Windows temp-folder ACL issue. Tests cover temporal joins, source 404 semantics, sparse position events, red flags, ambiguity, recorded real-response contracts, serialized inference, historical reference, cloud isolation, model orchestration and frontend interactions. The suite contains 37 Python tests and 12 frontend tests, including the historical stint chart regressions from PR #2. GitHub Actions runs the checks on pushes and pull requests. Deployment evidence is under `docs/evidence/`.
 
 ## Collaboration, ethics and limitations
 
-The two teammates contributed through [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1) and [PR #2](https://github.com/Seiitsu77/AIPI510-Project3/pull/2). PR #2 has been merged into the feature branch reviewed in PR #1. See [CONTRIBUTING.md](CONTRIBUTING.md) and [STATUS.md](STATUS.md).
+The complete project is on `main`. [PR #2](https://github.com/Seiitsu77/AIPI510-Project3/pull/2) added Stint Scenario Lab and [PR #3](https://github.com/Seiitsu77/AIPI510-Project3/pull/3) added Docker CI and documentation. Both merged into the feature branch before [PR #1](https://github.com/Seiitsu77/AIPI510-Project3/pull/1) brought the full project into `main`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [STATUS.md](STATUS.md).
 
 OpenF1 is unofficial; this academic project is unaffiliated with Formula 1, FIA or teams. Respect source access/rate policies and attribution. Models are observational, not causal or physical tyre simulations. Fuel, traffic, damage, setup and regulatory changes are omitted. Errors apply to the filtered evaluation population and can be optimistic relative to all racing laps. Some source sequences are incomplete; ambiguous tyre assignments are excluded. Do not use the demonstration for safety-critical race operations or promises about race outcomes.
 
